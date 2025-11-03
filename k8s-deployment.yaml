@@ -6,8 +6,8 @@ metadata:
   namespace: default
 data:
   SCHEDULE: "daily"
-  OUTPUT_DIR: "/app/photos"
-  CACHE_DIR: "/app/cache"
+  OUTPUT_DIR: "/photos"
+  CACHE_DIR: "/cache"
   MODE: "cron"
   # Optional: Cron expression (takes precedence over SCHEDULE)
   # CRON_EXPRESSION: "0 2 * * *"
@@ -125,9 +125,9 @@ spec:
               key: SCHOOL_KEYWORDS
         volumeMounts:
         - name: photos
-          mountPath: /app/photos
+          mountPath: /photos
         - name: cache
-          mountPath: /app/cache
+          mountPath: /cache
         resources:
           requests:
             memory: "256Mi"

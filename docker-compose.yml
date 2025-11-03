@@ -22,13 +22,13 @@ services:
       - SCHOOL_LNG=${SCHOOL_LNG}
       - SCHOOL_KEYWORDS=${SCHOOL_KEYWORDS}
       # Directories
-      - OUTPUT_DIR=/app/photos
-      - CACHE_DIR=/app/cache
+      - OUTPUT_DIR=/photos
+      - CACHE_DIR=/cache
     volumes:
       # Mount local directory for photos
-      - ./photos:/app/photos
+      - ./photos:/photos
       # Optional: mount cache directory
-      - ./cache:/app/cache
+      - ./cache:/cache
     restart: unless-stopped
     logging:
       driver: "json-file"

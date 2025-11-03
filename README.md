@@ -194,7 +194,7 @@ python -m src --cron
 
 ```bash
 docker run --rm \
-  -v $(pwd)/photos:/app/photos \
+  -v $(pwd)/photos:/photos \
   -v $(pwd)/.env:/app/.env \
   -e MODE=cli \
   tc-photo-grabber:latest
@@ -206,7 +206,7 @@ docker run --rm \
 # Using simple schedule
 docker run -d \
   --name tc-photo-grabber \
-  -v $(pwd)/photos:/app/photos \
+  -v $(pwd)/photos:/photos \
   -v $(pwd)/.env:/app/.env \
   -e MODE=cron \
   -e SCHEDULE=daily \
@@ -215,10 +215,20 @@ docker run -d \
 # Using cron expression (takes precedence over SCHEDULE)
 docker run -d \
   --name tc-photo-grabber \
-  -v $(pwd)/photos:/app/photos \
+  -v $(pwd)/photos:/photos \
   -v $(pwd)/.env:/app/.env \
   -e MODE=cron \
   -e CRON_EXPRESSION="0 2 * * *" \
+  tc-photo-grabber:latest
+
+# Using cron expression with immediate run on startup
+docker run -d \
+  --name tc-photo-grabber \
+  -v $(pwd)/photos:/photos \
+  -v $(pwd)/.env:/app/.env \
+  -e MODE=cron \
+  -e CRON_EXPRESSION="0 2 * * *" \
+  -e RUN_IMMEDIATELY=true \
   tc-photo-grabber:latest
 ```
 
@@ -227,7 +237,7 @@ docker run -d \
 ```bash
 docker run -d \
   --name tc-photo-grabber \
-  -v $(pwd)/photos:/app/photos \
+  -v $(pwd)/photos:/photos \
   -e MODE=cron \
   -e SCHEDULE="every 6 hours" \
   -e TC_EMAIL=your.email@example.com \
@@ -242,7 +252,7 @@ docker run -d \
 # Or use cron expression instead of SCHEDULE
 docker run -d \
   --name tc-photo-grabber \
-  -v $(pwd)/photos:/app/photos \
+  -v $(pwd)/photos:/photos \
   -e MODE=cron \
   -e CRON_EXPRESSION="*/30 * * * *" \
   -e TC_EMAIL=your.email@example.com \

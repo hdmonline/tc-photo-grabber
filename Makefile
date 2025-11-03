@@ -47,10 +47,10 @@ docker-build: ## Build Docker image
 	docker build -t tc-photo-grabber:latest .
 
 docker-run: ## Run Docker container once
-	docker run --rm -v $(PWD)/photos:/app/photos --env-file .env -e MODE=cli tc-photo-grabber:latest
+	docker run --rm -v $(PWD)/photos:/photos --env-file .env -e MODE=cli tc-photo-grabber:latest
 
 docker-run-cron: ## Run Docker container in cron mode
-	docker run -d --name tc-photo-grabber -v $(PWD)/photos:/app/photos --env-file .env -e MODE=cron -e SCHEDULE=daily tc-photo-grabber:latest
+	docker run -d --name tc-photo-grabber -v $(PWD)/photos:/photos --env-file .env -e MODE=cron -e SCHEDULE=daily tc-photo-grabber:latest
 
 docker-stop: ## Stop and remove Docker container
 	docker stop tc-photo-grabber || true
