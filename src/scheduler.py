@@ -34,7 +34,7 @@ class Scheduler:
         except Exception as e:
             self.logger.error(f"Error during scheduled download: {str(e)}", exc_info=True)
 
-    def start(self, schedule_spec: str = "daily", cron_expression: Optional[str] = None):
+    def start(self, schedule_spec: str = "daily", cron_expression: Optional[str] = None, run_immediately: bool = False):
         """
         Start the scheduler
 
@@ -43,6 +43,8 @@ class Scheduler:
                           or cron-like "every 6 hours", "every day at 10:30")
             cron_expression: Optional cron expression (e.g., "0 2 * * *" for daily at 2am).
                            If provided, this takes precedence over schedule_spec.
+            run_immediately: If True, run the job immediately on startup before waiting for schedule.
+                           Default is False.
         """
         self.running = True
         
@@ -62,11 +64,12 @@ class Scheduler:
             self._use_cron_expression = False
             self._setup_schedule_spec(schedule_spec)
 
-        # Run immediately on start
-        self.logger.info("Running initial download...")
-        self.run_job()
+        # Optionally run immediately on start
+        if run_immediately:
+            self.logger.info("Running immediate download on startup...")
+            self.run_job()
 
-        # Main scheduler loop
+        # Main scheduler loop - wait for first scheduled run
         self.logger.info("Scheduler started, waiting for scheduled runs...")
         if self._use_cron_expression:
             self._run_cron_loop()

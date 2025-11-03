@@ -84,6 +84,9 @@ Examples:
   tc-photo-grabber --cron --cron-expression "0 2 * * *"
   tc-photo-grabber --cron --cron-expression "*/30 * * * *"
 
+  # Run in cron mode and execute immediately on startup
+  tc-photo-grabber --cron --cron-expression "0 2 * * *" --run-immediately
+
   # Show current configuration
   tc-photo-grabber --show-config
 
@@ -123,6 +126,12 @@ Examples:
         type=str,
         help='Cron expression for scheduling (e.g., "0 2 * * *" for daily at 2am). '
              'Takes precedence over --schedule. Can also be set via CRON_EXPRESSION env var.'
+    )
+
+    parser.add_argument(
+        '--run-immediately',
+        action='store_true',
+        help='In cron mode, run the job immediately on startup before waiting for schedule'
     )
 
     parser.add_argument(
@@ -242,7 +251,11 @@ Examples:
 
         scheduler = Scheduler(download_job)
         try:
-            scheduler.start(schedule_spec=args.schedule, cron_expression=cron_expr)
+            scheduler.start(
+                schedule_spec=args.schedule, 
+                cron_expression=cron_expr,
+                run_immediately=args.run_immediately
+            )
         except KeyboardInterrupt:
             logger.info("Received interrupt signal, shutting down...")
             scheduler.stop()
