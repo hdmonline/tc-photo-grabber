@@ -10,6 +10,9 @@ services:
       # Schedule options: 'hourly', 'daily', 'weekly', 
       # 'every X hours', 'every day at HH:MM'
       - SCHEDULE=daily
+      # Optional: Cron expression (takes precedence over SCHEDULE)
+      # Examples: "0 2 * * *" (daily at 2am), "*/30 * * * *" (every 30 min)
+      # - CRON_EXPRESSION=0 2 * * *
       # Transparent Classroom credentials
       - TC_EMAIL=${TC_EMAIL}
       - TC_PASSWORD=${TC_PASSWORD}

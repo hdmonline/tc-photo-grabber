@@ -80,6 +80,10 @@ Examples:
   tc-photo-grabber --cron --schedule "every 6 hours"
   tc-photo-grabber --cron --schedule "every day at 10:30"
 
+  # Run in cron mode with cron expression
+  tc-photo-grabber --cron --cron-expression "0 2 * * *"
+  tc-photo-grabber --cron --cron-expression "*/30 * * * *"
+
   # Show current configuration
   tc-photo-grabber --show-config
 
@@ -112,6 +116,13 @@ Examples:
         default='daily',
         help='Schedule for cron mode (default: daily). '
              'Options: hourly, daily, weekly, "every X hours", "every day at HH:MM"'
+    )
+
+    parser.add_argument(
+        '--cron-expression',
+        type=str,
+        help='Cron expression for scheduling (e.g., "0 2 * * *" for daily at 2am). '
+             'Takes precedence over --schedule. Can also be set via CRON_EXPRESSION env var.'
     )
 
     parser.add_argument(
@@ -192,7 +203,13 @@ Examples:
 
     # Run in cron mode or CLI mode
     if args.cron:
-        logger.info(f"Starting in cron mode with schedule: {args.schedule}")
+        # Determine cron expression from CLI arg, env var, or config
+        cron_expr = args.cron_expression or config.cron_expression
+        
+        if cron_expr:
+            logger.info(f"Starting in cron mode with cron expression: {cron_expr}")
+        else:
+            logger.info(f"Starting in cron mode with schedule: {args.schedule}")
 
         def download_job():
             """Wrapper for scheduler"""
@@ -200,7 +217,7 @@ Examples:
 
         scheduler = Scheduler(download_job)
         try:
-            scheduler.start(args.schedule)
+            scheduler.start(schedule_spec=args.schedule, cron_expression=cron_expr)
         except KeyboardInterrupt:
             logger.info("Received interrupt signal, shutting down...")
             scheduler.stop()

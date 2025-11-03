@@ -1,13 +1,14 @@
 """
 Cron scheduler for periodic photo downloads
-Supports configurable download schedules
+Supports configurable download schedules and cron expressions
 """
 
 import logging
 import schedule
 import time
-from typing import Callable
+from typing import Callable, Optional
 from datetime import datetime
+from croniter import croniter
 
 
 class Scheduler:
@@ -33,17 +34,79 @@ class Scheduler:
         except Exception as e:
             self.logger.error(f"Error during scheduled download: {str(e)}", exc_info=True)
 
-    def start(self, schedule_spec: str = "daily"):
+    def start(self, schedule_spec: str = "daily", cron_expression: Optional[str] = None):
         """
         Start the scheduler
 
         Args:
             schedule_spec: Schedule specification (e.g., "hourly", "daily", "weekly",
                           or cron-like "every 6 hours", "every day at 10:30")
+            cron_expression: Optional cron expression (e.g., "0 2 * * *" for daily at 2am).
+                           If provided, this takes precedence over schedule_spec.
         """
         self.running = True
-        self.logger.info(f"Starting scheduler with schedule: {schedule_spec}")
+        
+        # If cron expression is provided, use it
+        if cron_expression:
+            if self._is_valid_cron(cron_expression):
+                self.logger.info(f"Starting scheduler with cron expression: {cron_expression}")
+                self._use_cron_expression = True
+                self._cron_expression = cron_expression
+                self._cron_iter = croniter(cron_expression, datetime.now())
+            else:
+                self.logger.error(f"Invalid cron expression: {cron_expression}, falling back to schedule_spec")
+                self._use_cron_expression = False
+                self._setup_schedule_spec(schedule_spec)
+        else:
+            self.logger.info(f"Starting scheduler with schedule: {schedule_spec}")
+            self._use_cron_expression = False
+            self._setup_schedule_spec(schedule_spec)
 
+        # Run immediately on start
+        self.logger.info("Running initial download...")
+        self.run_job()
+
+        # Main scheduler loop
+        self.logger.info("Scheduler started, waiting for scheduled runs...")
+        if self._use_cron_expression:
+            self._run_cron_loop()
+        else:
+            self._run_schedule_loop()
+
+    def _run_schedule_loop(self):
+        """Run the main loop for schedule-based scheduling"""
+        while self.running:
+            schedule.run_pending()
+            time.sleep(60)  # Check every minute
+
+    def _run_cron_loop(self):
+        """Run the main loop for cron expression-based scheduling"""
+        while self.running:
+            next_run = self._cron_iter.get_next(datetime)
+            now = datetime.now()
+            sleep_seconds = (next_run - now).total_seconds()
+            
+            if sleep_seconds > 0:
+                self.logger.info(f"Next run scheduled at {next_run} (sleeping for {sleep_seconds:.0f} seconds)")
+                # Sleep in smaller intervals to allow for graceful shutdown
+                while sleep_seconds > 0 and self.running:
+                    sleep_time = min(60, sleep_seconds)
+                    time.sleep(sleep_time)
+                    sleep_seconds -= sleep_time
+            
+            if self.running:
+                self.run_job()
+
+    def _is_valid_cron(self, cron_expression: str) -> bool:
+        """Validate a cron expression"""
+        try:
+            croniter(cron_expression)
+            return True
+        except (ValueError, KeyError):
+            return False
+
+    def _setup_schedule_spec(self, schedule_spec: str):
+        """Setup schedule based on schedule specification"""
         # Parse schedule specification and set up schedule
         if schedule_spec == "hourly":
             schedule.every().hour.do(self.run_job)
@@ -57,16 +120,6 @@ class Scheduler:
         else:
             self.logger.warning(f"Unknown schedule spec: {schedule_spec}, defaulting to daily")
             schedule.every().day.at("02:00").do(self.run_job)
-
-        # Run immediately on start
-        self.logger.info("Running initial download...")
-        self.run_job()
-
-        # Main scheduler loop
-        self.logger.info("Scheduler started, waiting for scheduled runs...")
-        while self.running:
-            schedule.run_pending()
-            time.sleep(60)  # Check every minute
 
     def _parse_custom_schedule(self, schedule_spec: str):
         """Parse custom schedule specifications"""

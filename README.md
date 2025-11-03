@@ -22,6 +22,8 @@ The authentication and configuration logic is preserved from the original Python
 - ✅ Smart caching to avoid unnecessary downloads
 - ✅ Embedded EXIF metadata including GPS coordinates and timestamps
 - ✅ **NEW: Cron scheduling** for automated downloads
+  - Simple schedules: hourly, daily, weekly, custom intervals
+  - **Unix cron expressions** for precise scheduling
 - ✅ **NEW: Docker support** for containerized deployment
 - ✅ **NEW: Kubernetes ready** with example manifests
 - ✅ Skip already downloaded photos for incremental updates
@@ -40,6 +42,7 @@ The authentication and configuration logic is preserved from the original Python
 - PyYAML
 - piexif
 - schedule
+- croniter (for cron expression support)
 - colorama (optional)
 
 ## 🔧 Installation
@@ -87,6 +90,9 @@ SCHOOL_LNG=-87.6663
 SCHOOL_KEYWORDS=school, montessori, chicago
 OUTPUT_DIR=./photos
 CACHE_DIR=./cache
+
+# Optional: Cron expression for scheduling (takes precedence over SCHEDULE)
+# CRON_EXPRESSION=0 2 * * *
 ```
 
 ### Option 2: YAML Config File
@@ -104,6 +110,8 @@ school_keywords: school, montessori, chicago
 output_dir: ./photos
 cache_dir: ./cache
 cache_timeout: 14400
+# Optional: Cron expression for scheduling
+# cron_expression: "0 2 * * *"
 ```
 
 ## 🎯 Usage
@@ -129,6 +137,8 @@ python -m src --verbose
 
 ### Cron Mode (Scheduled Downloads)
 
+#### Using Simple Schedules
+
 ```bash
 # Run with daily schedule (default runs at 2:00 AM)
 python -m src --cron --schedule daily
@@ -142,6 +152,41 @@ python -m src --cron --schedule "every day at 10:30"
 # Run hourly
 python -m src --cron --schedule hourly
 ```
+
+#### Using Cron Expressions
+
+For more precise scheduling, you can use standard Unix cron expressions:
+
+```bash
+# Run daily at 2:00 AM
+python -m src --cron --cron-expression "0 2 * * *"
+
+# Run every 30 minutes
+python -m src --cron --cron-expression "*/30 * * * *"
+
+# Run every 6 hours
+python -m src --cron --cron-expression "0 */6 * * *"
+
+# Run Monday to Friday at 9:00 AM
+python -m src --cron --cron-expression "0 9 * * 1-5"
+
+# Or set via environment variable
+export CRON_EXPRESSION="0 2 * * *"
+python -m src --cron
+```
+
+**Cron Expression Format:**
+```
+* * * * *
+│ │ │ │ │
+│ │ │ │ └─── Day of week (0-7, both 0 and 7 are Sunday)
+│ │ │ └───── Month (1-12)
+│ │ └─────── Day of month (1-31)
+│ └───────── Hour (0-23)
+└─────────── Minute (0-59)
+```
+
+**Note:** Cron expressions take precedence over `--schedule` when both are provided.
 
 ### Docker Usage
 
@@ -158,12 +203,22 @@ docker run --rm \
 #### Run in Cron Mode
 
 ```bash
+# Using simple schedule
 docker run -d \
   --name tc-photo-grabber \
   -v $(pwd)/photos:/app/photos \
   -v $(pwd)/.env:/app/.env \
   -e MODE=cron \
   -e SCHEDULE=daily \
+  tc-photo-grabber:latest
+
+# Using cron expression (takes precedence over SCHEDULE)
+docker run -d \
+  --name tc-photo-grabber \
+  -v $(pwd)/photos:/app/photos \
+  -v $(pwd)/.env:/app/.env \
+  -e MODE=cron \
+  -e CRON_EXPRESSION="0 2 * * *" \
   tc-photo-grabber:latest
 ```
 
@@ -175,6 +230,21 @@ docker run -d \
   -v $(pwd)/photos:/app/photos \
   -e MODE=cron \
   -e SCHEDULE="every 6 hours" \
+  -e TC_EMAIL=your.email@example.com \
+  -e TC_PASSWORD=your_password \
+  -e SCHOOL=12345 \
+  -e CHILD=67890 \
+  -e SCHOOL_LAT=41.9032 \
+  -e SCHOOL_LNG=-87.6663 \
+  -e SCHOOL_KEYWORDS="school, montessori, chicago" \
+  tc-photo-grabber:latest
+
+# Or use cron expression instead of SCHEDULE
+docker run -d \
+  --name tc-photo-grabber \
+  -v $(pwd)/photos:/app/photos \
+  -e MODE=cron \
+  -e CRON_EXPRESSION="*/30 * * * *" \
   -e TC_EMAIL=your.email@example.com \
   -e TC_PASSWORD=your_password \
   -e SCHOOL=12345 \
@@ -230,6 +300,8 @@ Edit the ConfigMap in `k8s-deployment.yaml`:
 ```yaml
 data:
   SCHEDULE: "every 6 hours"  # or "daily", "hourly", "every day at 10:30"
+  # Or use cron expression (takes precedence over SCHEDULE)
+  CRON_EXPRESSION: "0 */6 * * *"  # Every 6 hours
 ```
 
 Then reapply:
