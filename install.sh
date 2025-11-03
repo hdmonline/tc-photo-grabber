@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installation and verification script for tc-photos-grabber-py
+# Installation and verification script for tc-photo-grabber
 
 set -e
 

@@ -44,20 +44,20 @@ show-config: ## Display current configuration
 	python -m src --show-config
 
 docker-build: ## Build Docker image
-	docker build -t tc-photos-grabber:latest .
+	docker build -t tc-photo-grabber:latest .
 
 docker-run: ## Run Docker container once
-	docker run --rm -v $(PWD)/photos:/app/photos --env-file .env -e MODE=cli tc-photos-grabber:latest
+	docker run --rm -v $(PWD)/photos:/app/photos --env-file .env -e MODE=cli tc-photo-grabber:latest
 
 docker-run-cron: ## Run Docker container in cron mode
-	docker run -d --name tc-photos-grabber -v $(PWD)/photos:/app/photos --env-file .env -e MODE=cron -e SCHEDULE=daily tc-photos-grabber:latest
+	docker run -d --name tc-photo-grabber -v $(PWD)/photos:/app/photos --env-file .env -e MODE=cron -e SCHEDULE=daily tc-photo-grabber:latest
 
 docker-stop: ## Stop and remove Docker container
-	docker stop tc-photos-grabber || true
-	docker rm tc-photos-grabber || true
+	docker stop tc-photo-grabber || true
+	docker rm tc-photo-grabber || true
 
 docker-logs: ## View Docker container logs
-	docker logs -f tc-photos-grabber
+	docker logs -f tc-photo-grabber
 
 compose-up: ## Start with docker-compose
 	docker-compose up -d
@@ -75,7 +75,7 @@ k8s-delete: ## Delete Kubernetes deployment
 	kubectl delete -f k8s-deployment.yaml
 
 k8s-logs: ## View Kubernetes logs
-	kubectl logs -f deployment/tc-photos-grabber
+	kubectl logs -f deployment/tc-photo-grabber
 
 build: ## Build Python package
 	python setup.py sdist bdist_wheel

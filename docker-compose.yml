@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  tc-photos-grabber:
+  tc-photo-grabber:
     build: .
-    container_name: tc-photos-grabber
+    container_name: tc-photo-grabber
     environment:
       # Mode: 'cli' for one-time run, 'cron' for scheduled
       - MODE=cron

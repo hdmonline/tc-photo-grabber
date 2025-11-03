@@ -1,5 +1,5 @@
 # Use Python 3.15 slim image
-FROM python:3.15-slim
+FROM python:3.14-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \

@@ -7,14 +7,14 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
 
 setup(
-    name="tc-photos-grabber",
+    name="tc-photo-grabber",
     version="1.0.0",
     author="Harper Reed",
     author_email="harper@modest.com",
     description="Download and organize photos from Transparent Classroom with cron scheduling",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/harperreed/tc-photos-grabber-py",
+    url="https://github.com/harperreed/tc-photo-grabber",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -30,7 +30,7 @@ setup(
     install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "tc-photos-grabber=src.__main__:main",
+            "tc-photo-grabber=src.__main__:main",
         ],
     },
 )

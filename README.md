@@ -48,7 +48,7 @@ The authentication and configuration logic is preserved from the original Python
 
 ```bash
 # Clone the repository
-cd tc-photos-grabber-py
+cd tc-photo-grabber
 
 # Create virtual environment
 python -m venv venv
@@ -68,7 +68,7 @@ sudo apt-get install libimage-exiftool-perl
 
 ```bash
 # Build the Docker image
-docker build -t tc-photos-grabber:latest .
+docker build -t tc-photo-grabber:latest .
 ```
 
 ## ⚙️ Configuration
@@ -152,26 +152,26 @@ docker run --rm \
   -v $(pwd)/photos:/app/photos \
   -v $(pwd)/.env:/app/.env \
   -e MODE=cli \
-  tc-photos-grabber:latest
+  tc-photo-grabber:latest
 ```
 
 #### Run in Cron Mode
 
 ```bash
 docker run -d \
-  --name tc-photos-grabber \
+  --name tc-photo-grabber \
   -v $(pwd)/photos:/app/photos \
   -v $(pwd)/.env:/app/.env \
   -e MODE=cron \
   -e SCHEDULE=daily \
-  tc-photos-grabber:latest
+  tc-photo-grabber:latest
 ```
 
 #### Using Environment Variables
 
 ```bash
 docker run -d \
-  --name tc-photos-grabber \
+  --name tc-photo-grabber \
   -v $(pwd)/photos:/app/photos \
   -e MODE=cron \
   -e SCHEDULE="every 6 hours" \
@@ -182,7 +182,7 @@ docker run -d \
   -e SCHOOL_LAT=41.9032 \
   -e SCHOOL_LNG=-87.6663 \
   -e SCHOOL_KEYWORDS="school, montessori, chicago" \
-  tc-photos-grabber:latest
+  tc-photo-grabber:latest
 ```
 
 ## ☸️ Kubernetes Deployment
@@ -192,21 +192,21 @@ docker run -d \
 1. Build and push your Docker image:
 
 ```bash
-docker build -t your-registry/tc-photos-grabber:latest .
-docker push your-registry/tc-photos-grabber:latest
+docker build -t your-registry/tc-photo-grabber:latest .
+docker push your-registry/tc-photo-grabber:latest
 ```
 
 2. Update the image in `k8s-deployment.yaml`:
 
 ```yaml
-image: your-registry/tc-photos-grabber:latest
+image: your-registry/tc-photo-grabber:latest
 ```
 
 ### Deploy to Kubernetes
 
 ```bash
 # Update the secret with your credentials
-kubectl create secret generic tc-photos-grabber-secret \
+kubectl create secret generic tc-photo-grabber-secret \
   --from-literal=TC_EMAIL='your.email@example.com' \
   --from-literal=TC_PASSWORD='your_password' \
   --from-literal=SCHOOL='12345' \
@@ -219,8 +219,8 @@ kubectl create secret generic tc-photos-grabber-secret \
 kubectl apply -f k8s-deployment.yaml
 
 # Check status
-kubectl get pods -l app=tc-photos-grabber
-kubectl logs -f deployment/tc-photos-grabber
+kubectl get pods -l app=tc-photo-grabber
+kubectl logs -f deployment/tc-photo-grabber
 ```
 
 ### Customize Schedule
@@ -236,13 +236,13 @@ Then reapply:
 
 ```bash
 kubectl apply -f k8s-deployment.yaml
-kubectl rollout restart deployment/tc-photos-grabber
+kubectl rollout restart deployment/tc-photo-grabber
 ```
 
 ## 📁 Project Structure
 
 ```
-tc-photos-grabber-py/
+tc-photo-grabber/
 ├── src/
 │   ├── __init__.py          # Package initialization
 │   ├── __main__.py          # CLI entry point
@@ -269,13 +269,13 @@ tc-photos-grabber-py/
 ### View Logs (Docker)
 
 ```bash
-docker logs -f tc-photos-grabber
+docker logs -f tc-photo-grabber
 ```
 
 ### View Logs (Kubernetes)
 
 ```bash
-kubectl logs -f deployment/tc-photos-grabber
+kubectl logs -f deployment/tc-photo-grabber
 ```
 
 ### Metrics
@@ -321,12 +321,12 @@ pylint src/
 - Check cache timeout settings
 
 ### Docker Container Exits
-- Check logs: `docker logs tc-photos-grabber`
+- Check logs: `docker logs tc-photo-grabber`
 - Verify environment variables are set correctly
 - Ensure volumes are properly mounted
 
 ### Kubernetes Pod CrashLoopBackOff
-- Check secret is created: `kubectl get secret tc-photos-grabber-secret`
+- Check secret is created: `kubectl get secret tc-photo-grabber-secret`
 - View pod logs: `kubectl logs -f pod-name`
 - Verify PVC is bound: `kubectl get pvc`
 

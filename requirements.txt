@@ -1,4 +1,4 @@
-# Python dependencies for tc-photos-grabber-py
+# Python dependencies for tc-photo-grabber
 # Core dependencies
 requests>=2.32.5
 beautifulsoup4>=4.14.2

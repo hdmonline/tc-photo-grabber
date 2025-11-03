@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: tc-photos-grabber-config
+  name: tc-photo-grabber-config
   namespace: default
 data:
   SCHEDULE: "daily"
@@ -14,7 +14,7 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: tc-photos-grabber-secret
+  name: tc-photo-grabber-secret
   namespace: default
 type: Opaque
 stringData:
@@ -43,77 +43,77 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: tc-photos-grabber
+  name: tc-photo-grabber
   namespace: default
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: tc-photos-grabber
+      app: tc-photo-grabber
   template:
     metadata:
       labels:
-        app: tc-photos-grabber
+        app: tc-photo-grabber
     spec:
       containers:
-      - name: tc-photos-grabber
-        image: tc-photos-grabber:latest
+      - name: tc-photo-grabber
+        image: tc-photo-grabber:latest
         imagePullPolicy: IfNotPresent
         env:
         - name: MODE
           valueFrom:
             configMapKeyRef:
-              name: tc-photos-grabber-config
+              name: tc-photo-grabber-config
               key: MODE
         - name: SCHEDULE
           valueFrom:
             configMapKeyRef:
-              name: tc-photos-grabber-config
+              name: tc-photo-grabber-config
               key: SCHEDULE
         - name: OUTPUT_DIR
           valueFrom:
             configMapKeyRef:
-              name: tc-photos-grabber-config
+              name: tc-photo-grabber-config
               key: OUTPUT_DIR
         - name: CACHE_DIR
           valueFrom:
             configMapKeyRef:
-              name: tc-photos-grabber-config
+              name: tc-photo-grabber-config
               key: CACHE_DIR
         - name: TC_EMAIL
           valueFrom:
             secretKeyRef:
-              name: tc-photos-grabber-secret
+              name: tc-photo-grabber-secret
               key: TC_EMAIL
         - name: TC_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: tc-photos-grabber-secret
+              name: tc-photo-grabber-secret
               key: TC_PASSWORD
         - name: SCHOOL
           valueFrom:
             secretKeyRef:
-              name: tc-photos-grabber-secret
+              name: tc-photo-grabber-secret
               key: SCHOOL
         - name: CHILD
           valueFrom:
             secretKeyRef:
-              name: tc-photos-grabber-secret
+              name: tc-photo-grabber-secret
               key: CHILD
         - name: SCHOOL_LAT
           valueFrom:
             secretKeyRef:
-              name: tc-photos-grabber-secret
+              name: tc-photo-grabber-secret
               key: SCHOOL_LAT
         - name: SCHOOL_LNG
           valueFrom:
             secretKeyRef:
-              name: tc-photos-grabber-secret
+              name: tc-photo-grabber-secret
               key: SCHOOL_LNG
         - name: SCHOOL_KEYWORDS
           valueFrom:
             secretKeyRef:
-              name: tc-photos-grabber-secret
+              name: tc-photo-grabber-secret
               key: SCHOOL_KEYWORDS
         volumeMounts:
         - name: photos

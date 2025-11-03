@@ -68,23 +68,23 @@ def main():
         epilog="""
 Examples:
   # Run once in CLI mode
-  tc-photos-grabber
+  tc-photo-grabber
 
   # Run with custom output directory
-  tc-photos-grabber --output /path/to/photos
+  tc-photo-grabber --output /path/to/photos
 
   # Run in cron mode with daily schedule
-  tc-photos-grabber --cron --schedule daily
+  tc-photo-grabber --cron --schedule daily
 
   # Run in cron mode with custom schedule
-  tc-photos-grabber --cron --schedule "every 6 hours"
-  tc-photos-grabber --cron --schedule "every day at 10:30"
+  tc-photo-grabber --cron --schedule "every 6 hours"
+  tc-photo-grabber --cron --schedule "every day at 10:30"
 
   # Show current configuration
-  tc-photos-grabber --show-config
+  tc-photo-grabber --show-config
 
   # Verbose output for debugging
-  tc-photos-grabber --verbose
+  tc-photo-grabber --verbose
         """
     )
 
