@@ -1,0 +1,136 @@
+# Example Kubernetes deployment configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tc-photos-grabber-config
+  namespace: default
+data:
+  SCHEDULE: "daily"
+  OUTPUT_DIR: "/app/photos"
+  CACHE_DIR: "/app/cache"
+  MODE: "cron"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tc-photos-grabber-secret
+  namespace: default
+type: Opaque
+stringData:
+  TC_EMAIL: "your.email@example.com"
+  TC_PASSWORD: "your_password"
+  SCHOOL: "12345"
+  CHILD: "67890"
+  SCHOOL_LAT: "41.9032"
+  SCHOOL_LNG: "-87.6663"
+  SCHOOL_KEYWORDS: "school, montessori, chicago"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tc-photos-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tc-photos-grabber
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tc-photos-grabber
+  template:
+    metadata:
+      labels:
+        app: tc-photos-grabber
+    spec:
+      containers:
+      - name: tc-photos-grabber
+        image: tc-photos-grabber:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MODE
+          valueFrom:
+            configMapKeyRef:
+              name: tc-photos-grabber-config
+              key: MODE
+        - name: SCHEDULE
+          valueFrom:
+            configMapKeyRef:
+              name: tc-photos-grabber-config
+              key: SCHEDULE
+        - name: OUTPUT_DIR
+          valueFrom:
+            configMapKeyRef:
+              name: tc-photos-grabber-config
+              key: OUTPUT_DIR
+        - name: CACHE_DIR
+          valueFrom:
+            configMapKeyRef:
+              name: tc-photos-grabber-config
+              key: CACHE_DIR
+        - name: TC_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: tc-photos-grabber-secret
+              key: TC_EMAIL
+        - name: TC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: tc-photos-grabber-secret
+              key: TC_PASSWORD
+        - name: SCHOOL
+          valueFrom:
+            secretKeyRef:
+              name: tc-photos-grabber-secret
+              key: SCHOOL
+        - name: CHILD
+          valueFrom:
+            secretKeyRef:
+              name: tc-photos-grabber-secret
+              key: CHILD
+        - name: SCHOOL_LAT
+          valueFrom:
+            secretKeyRef:
+              name: tc-photos-grabber-secret
+              key: SCHOOL_LAT
+        - name: SCHOOL_LNG
+          valueFrom:
+            secretKeyRef:
+              name: tc-photos-grabber-secret
+              key: SCHOOL_LNG
+        - name: SCHOOL_KEYWORDS
+          valueFrom:
+            secretKeyRef:
+              name: tc-photos-grabber-secret
+              key: SCHOOL_KEYWORDS
+        volumeMounts:
+        - name: photos
+          mountPath: /app/photos
+        - name: cache
+          mountPath: /app/cache
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: photos
+        persistentVolumeClaim:
+          claimName: tc-photos-pvc
+      - name: cache
+        emptyDir: {}
+      restartPolicy: Always
