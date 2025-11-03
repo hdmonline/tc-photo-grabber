@@ -193,6 +193,31 @@ Examples:
     # Dry run mode
     if args.dry_run:
         logger.info("DRY RUN MODE - No photos will be downloaded")
+        
+        # If in cron mode, show scheduling info
+        if args.cron:
+            from croniter import croniter
+            from datetime import datetime
+            
+            cron_expr = args.cron_expression or config.cron_expression
+            print(f"\n=== Cron Schedule Information ===")
+            
+            if cron_expr:
+                print(f"Cron Expression: {cron_expr}")
+                try:
+                    cron = croniter(cron_expr, datetime.now())
+                    print(f"Next 5 scheduled runs:")
+                    for i in range(5):
+                        next_run = cron.get_next(datetime)
+                        print(f"  {i+1}. {next_run.strftime('%Y-%m-%d %H:%M:%S %A')}")
+                except Exception as e:
+                    print(f"Error parsing cron expression: {e}")
+            else:
+                print(f"Schedule: {args.schedule}")
+                print(f"(Simple schedules don't support dry-run preview)")
+            print()
+        
+        # Run the actual dry-run check
         client = TransparentClassroomClient(config)
         photos = client.crawl_all_posts()
         print(f"\n=== Dry Run Results ===")
