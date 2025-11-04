@@ -9,10 +9,12 @@ import logging
 import argparse
 from pathlib import Path
 from dotenv import load_dotenv
+from typing import Optional
 
 from .config import Config
 from .client import TransparentClassroomClient
 from .scheduler import Scheduler
+from .telegram_notifier import TelegramNotifier
 
 
 def setup_logging(verbose: bool = False):
@@ -27,9 +29,13 @@ def setup_logging(verbose: bool = False):
     )
 
 
-def download_photos(config: Config) -> int:
+def download_photos(config: Config, telegram_notifier: Optional[TelegramNotifier] = None) -> int:
     """
     Download photos using the provided configuration
+
+    Args:
+        config: Configuration object
+        telegram_notifier: Optional Telegram notifier for sending updates
 
     Returns:
         Number of photos downloaded
@@ -52,11 +58,27 @@ def download_photos(config: Config) -> int:
     # Create client and download photos
     try:
         client = TransparentClassroomClient(config)
-        downloaded_count = client.download_all_photos()
+        result = client.download_all_photos()
+        
+        downloaded_count = result['downloaded_count']
+        total_posts = result['total_posts']
+        photo_items = result['downloaded_items']
+        
         logger.info(f"Successfully downloaded {downloaded_count} new photos")
+        
+        # Send Telegram notification if configured
+        if telegram_notifier:
+            logger.info("Sending Telegram notification...")
+            telegram_notifier.send_download_summary(downloaded_count, total_posts, photo_items)
+        
         return downloaded_count
     except Exception as e:
         logger.error(f"Failed to download photos: {str(e)}", exc_info=True)
+        
+        # Send error notification to Telegram if configured
+        if telegram_notifier:
+            telegram_notifier.send_message(f"❌ *Photo Sync Failed*\n\nError: {str(e)}")
+        
         sys.exit(1)
 
 
@@ -236,6 +258,18 @@ Examples:
         print()
         sys.exit(0)
 
+    # Initialize Telegram notifier if configured
+    telegram_notifier = None
+    if config.telegram_bot_token and config.telegram_chat_id:
+        logger.info("Initializing Telegram notifier...")
+        telegram_notifier = TelegramNotifier(config.telegram_bot_token, config.telegram_chat_id)
+        
+        # Test connection
+        if telegram_notifier.test_connection():
+            logger.info("Telegram notifier initialized successfully")
+        else:
+            logger.warning("Telegram connection test failed, notifications may not work")
+    
     # Run in cron mode or CLI mode
     if args.cron:
         # Determine cron expression from CLI arg, env var, or config
@@ -248,7 +282,7 @@ Examples:
 
         def download_job():
             """Wrapper for scheduler"""
-            download_photos(config)
+            download_photos(config, telegram_notifier)
 
         scheduler = Scheduler(download_job)
         try:
@@ -266,7 +300,7 @@ Examples:
             sys.exit(0)
     else:
         # CLI mode - run once
-        download_photos(config)
+        download_photos(config, telegram_notifier)
 
 
 if __name__ == '__main__':

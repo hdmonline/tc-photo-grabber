@@ -26,6 +26,8 @@ class Config:
     cron_expression: Optional[str] = None  # Optional cron expression for scheduling
     run_immediately: bool = False  # Run immediately on startup in cron mode
     timezone: str = "UTC"  # Timezone for cron scheduling (e.g., "America/Chicago", "UTC")
+    telegram_bot_token: Optional[str] = None  # Telegram bot token for notifications
+    telegram_chat_id: Optional[str] = None  # Telegram chat ID to send notifications to
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -43,7 +45,9 @@ class Config:
             cache_timeout=int(os.getenv('CACHE_TIMEOUT', 14400)),
             cron_expression=os.getenv('CRON_EXPRESSION', None),
             run_immediately=os.getenv('RUN_IMMEDIATELY', '').lower() in ('true', '1', 'yes'),
-            timezone=os.getenv('TZ', 'UTC')
+            timezone=os.getenv('TZ', 'UTC'),
+            telegram_bot_token=os.getenv('TELEGRAM_BOT_TOKEN', None),
+            telegram_chat_id=os.getenv('TELEGRAM_CHAT_ID', None)
         )
 
     @classmethod
@@ -71,7 +75,9 @@ class Config:
             cache_timeout=int(data.get('cache_timeout', 14400)),
             cron_expression=data.get('cron_expression', None),
             run_immediately=bool(data.get('run_immediately', False)),
-            timezone=data.get('timezone', 'UTC')
+            timezone=data.get('timezone', 'UTC'),
+            telegram_bot_token=data.get('telegram_bot_token', None),
+            telegram_chat_id=data.get('telegram_chat_id', None)
         )
 
     @staticmethod

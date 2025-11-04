@@ -24,6 +24,9 @@ The authentication and configuration logic is preserved from the original Python
 - ✅ **NEW: Cron scheduling** for automated downloads
   - Simple schedules: hourly, daily, weekly, custom intervals
   - **Unix cron expressions** for precise scheduling
+- ✅ **NEW: Telegram notifications** 📱
+  - Get notified when new photos are downloaded
+  - Receive the photos directly in your Telegram chat/channel
 - ✅ **NEW: Docker support** for containerized deployment
 - ✅ **NEW: Kubernetes ready** with example manifests
 - ✅ Skip already downloaded photos for incremental updates
@@ -96,6 +99,10 @@ CACHE_DIR=./cache
 
 # Optional: Timezone for cron scheduling (default: UTC)
 # TZ=America/Chicago
+
+# Optional: Telegram notifications
+# TELEGRAM_BOT_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+# TELEGRAM_CHAT_ID=@yourchannel or -1001234567890
 ```
 
 ### Option 2: YAML Config File
@@ -117,6 +124,9 @@ cache_timeout: 14400
 # cron_expression: "0 2 * * *"
 # Optional: Timezone for cron scheduling (default: UTC)
 # timezone: "America/Chicago"
+# Optional: Telegram notifications
+# telegram_bot_token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+# telegram_chat_id: "@yourchannel"
 ```
 
 ## 🎯 Usage
@@ -339,25 +349,140 @@ kubectl rollout restart deployment/tc-photo-grabber
 ```
 tc-photo-grabber/
 ├── src/
-│   ├── __init__.py          # Package initialization
+│   ├── __init__.py
 │   ├── __main__.py          # CLI entry point
 │   ├── config.py            # Configuration management
 │   ├── client.py            # API client (original auth logic)
-│   └── scheduler.py         # Cron scheduling
+│   ├── scheduler.py         # Cron scheduling
+│   └── telegram_notifier.py # Telegram notification service
 ├── Dockerfile               # Docker image definition
 ├── k8s-deployment.yaml      # Kubernetes manifests
 ├── requirements.txt         # Python dependencies
 ├── .env.example            # Example environment variables
+├── TELEGRAM_SETUP.md       # Telegram bot setup guide
 └── README.md               # This file
 ```
 
-## 🔐 Security Notes
+## 📱 Telegram Notifications
+
+The application can send notifications to a Telegram channel or chat after each cron job run, including:
+- Summary of how many new photos were downloaded
+- The new photos themselves (up to 10 photos to avoid spam)
+
+📖 **For detailed setup instructions, see [TELEGRAM_SETUP.md](TELEGRAM_SETUP.md)**
+
+### Quick Setup
+
+1. **Create a Telegram Bot:**
+   - Open Telegram and search for [@BotFather](https://t.me/botfather)
+   - Send `/newbot` and follow the instructions
+   - You'll receive a bot token like: `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`
+
+2. **Get Your Chat ID:**
+   
+   **For a personal chat:**
+   - Send a message to your bot
+   - Visit: `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`
+   - Find your chat ID in the response (e.g., `123456789`)
+   
+   **For a channel:**
+   - Add your bot as an administrator to your channel
+   - Use the channel username (e.g., `@yourchannel`) or numeric ID (e.g., `-1001234567890`)
+
+3. **Configure the Application:**
+
+   ```bash
+   # In .env file
+   TELEGRAM_BOT_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+   TELEGRAM_CHAT_ID=@yourchannel
+   
+   # Or via environment variables
+   export TELEGRAM_BOT_TOKEN="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+   export TELEGRAM_CHAT_ID="@yourchannel"
+   ```
+
+4. **Test the Connection:**
+   
+   ```bash
+   # Run once to test Telegram notifications
+   python -m src
+   
+   # Run in cron mode with Telegram notifications
+   python -m src --cron --cron-expression "0 2 * * *"
+   ```
+
+### Telegram Notification Format
+
+After each run, you'll receive:
+- ✅ A summary message showing:
+  - Number of new photos downloaded
+  - Total posts scanned
+- 📸 Up to 10 new photos with filenames as captions
+- If more than 10 photos were downloaded, a note about remaining photos
+
+Example notification:
+```
+✅ Photo Sync Complete
+
+📸 New photos downloaded: 5
+📋 Total posts scanned: 23
+
+Sending 5 photos...
+```
+
+### Docker with Telegram
+
+```bash
+docker run -d \
+  --name tc-photo-grabber \
+  -v $(pwd)/photos:/photos \
+  -v $(pwd)/.env:/app/.env \
+  -e MODE=cron \
+  -e CRON_EXPRESSION="0 2 * * *" \
+  -e TELEGRAM_BOT_TOKEN="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" \
+  -e TELEGRAM_CHAT_ID="@yourchannel" \
+  tc-photo-grabber:latest
+```
+
+### Kubernetes with Telegram
+
+Add to your Secret in `k8s-deployment.yaml`:
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tc-photo-grabber-secret
+type: Opaque
+stringData:
+  tc-email: your.email@example.com
+  tc-password: your_password
+  telegram-bot-token: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+  telegram-chat-id: "@yourchannel"
+```
+
+Then reference in the Deployment:
+```yaml
+env:
+  - name: TELEGRAM_BOT_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: tc-photo-grabber-secret
+        key: telegram-bot-token
+  - name: TELEGRAM_CHAT_ID
+    valueFrom:
+      secretKeyRef:
+        name: tc-photo-grabber-secret
+        key: telegram-chat-id
+```
+
+## �🔐 Security Notes
 
 - **Never commit credentials** to version control
 - Use Kubernetes Secrets for sensitive data in production
 - Consider using a secrets manager (e.g., AWS Secrets Manager, HashiCorp Vault)
 - Rotate credentials regularly
 - Use read-only file system mounts in containers when possible
+- Keep your Telegram bot token secure - treat it like a password
 
 ## 📊 Monitoring
 

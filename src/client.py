@@ -272,13 +272,13 @@ class TransparentClassroomClient:
             self.logger.error(f"Failed to process photo {photo_data.get('id', 'unknown')}: {str(e)}")
             raise
 
-    def download_all_photos(self) -> int:
+    def download_all_photos(self) -> Dict[str, Any]:
         """
         Download all available photos
-        Returns the number of photos downloaded
+        Returns a dict with download statistics, photo paths, and metadata
         """
         photos = self.crawl_all_posts()
-        downloaded_count = 0
+        downloaded_items = []
 
         self.logger.info(f"Processing {len(photos)} posts")
 
@@ -286,10 +286,21 @@ class TransparentClassroomClient:
             try:
                 result = self.download_and_embed_metadata(photo_data)
                 if result:
-                    downloaded_count += 1
+                    # Extract description from HTML
+                    description = BeautifulSoup(photo_data['html'], 'html.parser').get_text().strip()
+                    downloaded_items.append({
+                        'path': result,
+                        'description': description
+                    })
             except Exception as e:
                 self.logger.error(f"Failed to download photo: {str(e)}")
                 # Continue with other photos
 
+        downloaded_count = len(downloaded_items)
         self.logger.info(f"Downloaded {downloaded_count} new photos")
-        return downloaded_count
+        
+        return {
+            'downloaded_count': downloaded_count,
+            'total_posts': len(photos),
+            'downloaded_items': downloaded_items
+        }

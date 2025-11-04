@@ -13,6 +13,11 @@ services:
       # Optional: Cron expression (takes precedence over SCHEDULE)
       # Examples: "0 2 * * *" (daily at 2am), "*/30 * * * *" (every 30 min)
       # - CRON_EXPRESSION=0 2 * * *
+      # Optional: Run immediately on startup (before first scheduled time)
+      # - RUN_IMMEDIATELY=true
+      # Optional: Telegram notifications
+      # - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      # - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
       # Transparent Classroom credentials
       - TC_EMAIL=${TC_EMAIL}
       - TC_PASSWORD=${TC_PASSWORD}
