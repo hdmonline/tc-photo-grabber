@@ -170,6 +170,7 @@ class TransparentClassroomClient:
         try:
             command = [
                 'exiftool',
+                '-overwrite_original',  # Don't create backup files
                 f'-IPTC:ObjectName={title}',
                 f'-IPTC:By-line={creator}',
                 f'-IPTC:Keywords={self.config.school_keywords}',
@@ -192,12 +193,20 @@ class TransparentClassroomClient:
             created_at = datetime.fromisoformat(photo_data['created_at'].rstrip("Z"))
             photo_id = photo_data['id']
 
-            # Determine file extension from URL or content type
-            url_ext = photo_url.split('.')[-1].lower() if '.' in photo_url else 'jpg'
-            if url_ext not in ['jpg', 'jpeg', 'png', 'tiff', 'tif']:
+            # Determine file extension from URL
+            # Extract extension from URL path (before query parameters)
+            url_path = photo_url.split('?')[0]  # Remove query parameters
+            url_ext = url_path.split('.')[-1].lower() if '.' in url_path else 'jpg'
+            self.logger.debug(f"Photo {photo_id}: URL={photo_url}, detected extension={url_ext}")
+            # Validate extension
+            valid_extensions = ['jpg', 'jpeg', 'png', 'gif', 'tiff', 'tif', 'bmp', 'webp']
+            if url_ext not in valid_extensions:
+                self.logger.warning(f"Photo {photo_id}: Unrecognized file extension '{url_ext}', defaulting to 'jpg'")
                 url_ext = 'jpg'
             
-            image_path = Path(self.config.output_dir) / f"{photo_id}_max.{url_ext}"
+            # Format filename with date and ID
+            date_str = created_at.strftime("%Y-%m-%d")
+            image_path = Path(self.config.output_dir) / f"{date_str}_{photo_id}.{url_ext}"
 
             # Check if photo already exists
             if image_path.exists():
