@@ -73,7 +73,7 @@ class TelegramNotifier:
 
     def send_photo(self, photo_path: Path, caption: Optional[str] = None) -> bool:
         """
-        Send a photo to Telegram
+        Send a photo to Telegram as a document (preserves original resolution)
 
         Args:
             photo_path: Path to the photo file
@@ -83,15 +83,16 @@ class TelegramNotifier:
             True if successful, False otherwise
         """
         try:
-            url = f"{self.base_url}/sendPhoto"
+            # Use sendDocument to preserve original resolution
+            url = f"{self.base_url}/sendDocument"
             
             with open(photo_path, 'rb') as photo_file:
-                files = {'photo': photo_file}
+                files = {'document': photo_file}
                 data = {'chat_id': self.chat_id}
                 if caption:
                     data['caption'] = caption
                 
-                response = requests.post(url, data=data, files=files, timeout=60)
+                response = requests.post(url, data=data, files=files, timeout=120)
                 response.raise_for_status()
                 
             self.logger.debug(f"Successfully sent photo: {photo_path.name}")
