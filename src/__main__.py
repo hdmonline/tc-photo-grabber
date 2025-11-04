@@ -131,7 +131,8 @@ Examples:
     parser.add_argument(
         '--run-immediately',
         action='store_true',
-        help='In cron mode, run the job immediately on startup before waiting for schedule'
+        help='In cron mode, run the job immediately on startup before waiting for schedule. '
+             'Can also be set via RUN_IMMEDIATELY env var (true/1/yes)'
     )
 
     parser.add_argument(
@@ -251,10 +252,12 @@ Examples:
 
         scheduler = Scheduler(download_job)
         try:
+            # Use CLI arg if provided, otherwise use config value
+            run_now = args.run_immediately or config.run_immediately
             scheduler.start(
                 schedule_spec=args.schedule, 
                 cron_expression=cron_expr,
-                run_immediately=args.run_immediately
+                run_immediately=run_now
             )
         except KeyboardInterrupt:
             logger.info("Received interrupt signal, shutting down...")
