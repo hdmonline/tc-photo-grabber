@@ -120,14 +120,13 @@ class TelegramNotifier:
             photo_path = item['path']
             description = item.get('description', '')
             
-            # Create caption with filename and description
-            caption = f"{photo_path.name}"
+            # Use only the description as caption (no filename)
+            caption = None
             if description:
                 # Telegram caption limit is 1024 characters
-                max_desc_length = 900  # Leave room for filename
-                if len(description) > max_desc_length:
-                    description = description[:max_desc_length] + "..."
-                caption += f"\n\n{description}"
+                if len(description) > 1024:
+                    description = description[:1020] + "..."
+                caption = description
             
             if self.send_photo(photo_path, caption):
                 sent_count += 1
@@ -152,10 +151,9 @@ class TelegramNotifier:
         """
         try:
             if downloaded_count == 0:
-                message = f"✅ *Photo Sync Complete*\n\n" \
-                         f"No new photos found.\n" \
-                         f"Total posts scanned: {total_posts}"
-                return self.send_message(message)
+                # Don't send any notification if no new photos
+                self.logger.info("No new photos downloaded, skipping Telegram notification")
+                return True
             
             # Send summary message
             message = f"✅ *Photo Sync Complete*\n\n" \
@@ -196,18 +194,9 @@ class TelegramNotifier:
                 self.logger.info(f"Successfully connected to Telegram bot: @{bot_name}")
                 self.logger.info(f"Will send notifications to chat ID: {self.chat_id}")
                 
-                # Test sending a message to validate chat_id
-                test_msg = "TC Photo Grabber connected successfully! You'll receive notifications here when photos are downloaded."
-                if self.send_message(test_msg, parse_mode=None):
-                    self.logger.info("Test message sent successfully")
-                    return True
-                else:
-                    self.logger.error("Bot connected but failed to send test message.")
-                    self.logger.error("Common issues:")
-                    self.logger.error("  - Bot is not a member of the chat/group")
-                    self.logger.error("  - Bot doesn't have permission to send messages")
-                    self.logger.error("  - Chat ID is incorrect")
-                    return False
+                # Test connection without sending a message
+                # Just verify the bot API works
+                return True
             return False
         except Exception as e:
             self.logger.error(f"Failed to connect to Telegram: {str(e)}")
