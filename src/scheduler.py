@@ -9,6 +9,7 @@ import time
 from typing import Callable, Optional
 from datetime import datetime
 from croniter import croniter
+from zoneinfo import ZoneInfo
 
 
 class Scheduler:
@@ -34,7 +35,7 @@ class Scheduler:
         except Exception as e:
             self.logger.error(f"Error during scheduled download: {str(e)}", exc_info=True)
 
-    def start(self, schedule_spec: str = "daily", cron_expression: Optional[str] = None, run_immediately: bool = False):
+    def start(self, schedule_spec: str = "daily", cron_expression: Optional[str] = None, run_immediately: bool = False, timezone: str = "UTC"):
         """
         Start the scheduler
 
@@ -45,16 +46,28 @@ class Scheduler:
                            If provided, this takes precedence over schedule_spec.
             run_immediately: If True, run the job immediately on startup before waiting for schedule.
                            Default is False.
+            timezone: Timezone for cron scheduling (e.g., "America/Chicago", "UTC").
+                     Default is "UTC".
         """
         self.running = True
+        self._timezone = timezone
         
         # If cron expression is provided, use it
         if cron_expression:
             if self._is_valid_cron(cron_expression):
-                self.logger.info(f"Starting scheduler with cron expression: {cron_expression}")
+                self.logger.info(f"Starting scheduler with cron expression: {cron_expression} (timezone: {timezone})")
                 self._use_cron_expression = True
                 self._cron_expression = cron_expression
-                self._cron_iter = croniter(cron_expression, datetime.now())
+                # Use timezone-aware datetime
+                try:
+                    tz = ZoneInfo(timezone)
+                    now = datetime.now(tz)
+                    self._cron_iter = croniter(cron_expression, now)
+                except Exception as e:
+                    self.logger.error(f"Invalid timezone '{timezone}': {e}, falling back to UTC")
+                    now = datetime.now(ZoneInfo("UTC"))
+                    self._cron_iter = croniter(cron_expression, now)
+                    self._timezone = "UTC"
             else:
                 self.logger.error(f"Invalid cron expression: {cron_expression}, falling back to schedule_spec")
                 self._use_cron_expression = False
@@ -84,13 +97,14 @@ class Scheduler:
 
     def _run_cron_loop(self):
         """Run the main loop for cron expression-based scheduling"""
+        tz = ZoneInfo(self._timezone)
         while self.running:
             next_run = self._cron_iter.get_next(datetime)
-            now = datetime.now()
+            now = datetime.now(tz)
             sleep_seconds = (next_run - now).total_seconds()
             
             if sleep_seconds > 0:
-                self.logger.info(f"Next run scheduled at {next_run} (sleeping for {sleep_seconds:.0f} seconds)")
+                self.logger.info(f"Next run scheduled at {next_run.strftime('%Y-%m-%d %H:%M:%S %Z')} (sleeping for {sleep_seconds:.0f} seconds)")
                 # Sleep in smaller intervals to allow for graceful shutdown
                 while sleep_seconds > 0 and self.running:
                     sleep_time = min(60, sleep_seconds)

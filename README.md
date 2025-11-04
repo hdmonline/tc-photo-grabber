@@ -93,6 +93,9 @@ CACHE_DIR=./cache
 
 # Optional: Cron expression for scheduling (takes precedence over SCHEDULE)
 # CRON_EXPRESSION=0 2 * * *
+
+# Optional: Timezone for cron scheduling (default: UTC)
+# TZ=America/Chicago
 ```
 
 ### Option 2: YAML Config File
@@ -112,6 +115,8 @@ cache_dir: ./cache
 cache_timeout: 14400
 # Optional: Cron expression for scheduling
 # cron_expression: "0 2 * * *"
+# Optional: Timezone for cron scheduling (default: UTC)
+# timezone: "America/Chicago"
 ```
 
 ## 🎯 Usage
@@ -173,6 +178,11 @@ python -m src --cron --cron-expression "0 9 * * 1-5"
 # Or set via environment variable
 export CRON_EXPRESSION="0 2 * * *"
 python -m src --cron
+
+# With timezone (default is UTC)
+export TZ="America/Chicago"
+export CRON_EXPRESSION="0 2 * * *"  # 2 AM Central Time
+python -m src --cron
 ```
 
 **Cron Expression Format:**
@@ -186,7 +196,10 @@ python -m src --cron
 └─────────── Minute (0-59)
 ```
 
-**Note:** Cron expressions take precedence over `--schedule` when both are provided.
+**Notes:** 
+- Cron expressions take precedence over `--schedule` when both are provided.
+- Cron times are interpreted in the timezone specified by the `TZ` environment variable (default: UTC).
+- Common timezones: `America/New_York`, `America/Chicago`, `America/Los_Angeles`, `Europe/London`, `Asia/Tokyo`
 
 ### Docker Usage
 

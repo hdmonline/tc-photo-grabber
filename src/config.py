@@ -25,6 +25,7 @@ class Config:
     cache_timeout: int = 14400  # 4 hours in seconds
     cron_expression: Optional[str] = None  # Optional cron expression for scheduling
     run_immediately: bool = False  # Run immediately on startup in cron mode
+    timezone: str = "UTC"  # Timezone for cron scheduling (e.g., "America/Chicago", "UTC")
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -41,7 +42,8 @@ class Config:
             cache_dir=os.getenv('CACHE_DIR', './cache'),
             cache_timeout=int(os.getenv('CACHE_TIMEOUT', 14400)),
             cron_expression=os.getenv('CRON_EXPRESSION', None),
-            run_immediately=os.getenv('RUN_IMMEDIATELY', '').lower() in ('true', '1', 'yes')
+            run_immediately=os.getenv('RUN_IMMEDIATELY', '').lower() in ('true', '1', 'yes'),
+            timezone=os.getenv('TZ', 'UTC')
         )
 
     @classmethod
@@ -68,7 +70,8 @@ class Config:
             cache_dir=data.get('cache_dir', './cache'),
             cache_timeout=int(data.get('cache_timeout', 14400)),
             cron_expression=data.get('cron_expression', None),
-            run_immediately=bool(data.get('run_immediately', False))
+            run_immediately=bool(data.get('run_immediately', False)),
+            timezone=data.get('timezone', 'UTC')
         )
 
     @staticmethod

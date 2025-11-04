@@ -257,7 +257,8 @@ Examples:
             scheduler.start(
                 schedule_spec=args.schedule, 
                 cron_expression=cron_expr,
-                run_immediately=run_now
+                run_immediately=run_now,
+                timezone=config.timezone
             )
         except KeyboardInterrupt:
             logger.info("Received interrupt signal, shutting down...")
