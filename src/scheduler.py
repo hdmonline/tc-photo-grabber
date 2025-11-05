@@ -6,6 +6,7 @@ Supports configurable download schedules and cron expressions
 import logging
 import schedule
 import time
+import threading
 from typing import Callable, Optional
 from datetime import datetime
 from croniter import croniter
@@ -15,15 +16,18 @@ from zoneinfo import ZoneInfo
 class Scheduler:
     """Scheduler for running downloads on a schedule"""
 
-    def __init__(self, download_func: Callable[[], None]):
+    def __init__(self, download_func: Callable[[], None], telegram_bot=None):
         """
         Initialize the scheduler
 
         Args:
             download_func: Function to call on each scheduled run
+            telegram_bot: Optional TelegramBotHandler instance for command handling
         """
         self.logger = logging.getLogger('Scheduler')
         self.download_func = download_func
+        self.telegram_bot = telegram_bot
+        self.telegram_thread = None
         self.running = False
 
     def run_job(self):
@@ -77,6 +81,15 @@ class Scheduler:
             self._use_cron_expression = False
             self._setup_schedule_spec(schedule_spec)
 
+        # Start telegram bot in background thread if provided
+        if self.telegram_bot:
+            self.logger.info("Starting Telegram bot in background thread...")
+            self.telegram_thread = threading.Thread(
+                target=self.telegram_bot.run_polling_sync,
+                daemon=True
+            )
+            self.telegram_thread.start()
+
         # Optionally run immediately on start
         if run_immediately:
             self.logger.info("Running immediate download on startup...")
@@ -93,7 +106,7 @@ class Scheduler:
         """Run the main loop for schedule-based scheduling"""
         while self.running:
             schedule.run_pending()
-            time.sleep(60)  # Check every minute
+            time.sleep(10)  # Check every 10 seconds
 
     def _run_cron_loop(self):
         """Run the main loop for cron expression-based scheduling"""
@@ -107,7 +120,7 @@ class Scheduler:
                 self.logger.info(f"Next run scheduled at {next_run.strftime('%Y-%m-%d %H:%M:%S %Z')} (sleeping for {sleep_seconds:.0f} seconds)")
                 # Sleep in smaller intervals to allow for graceful shutdown
                 while sleep_seconds > 0 and self.running:
-                    sleep_time = min(60, sleep_seconds)
+                    sleep_time = min(10, sleep_seconds)  # Check every 10 seconds
                     time.sleep(sleep_time)
                     sleep_seconds -= sleep_time
             

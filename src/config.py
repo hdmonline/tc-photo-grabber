@@ -28,6 +28,7 @@ class Config:
     timezone: str = "UTC"  # Timezone for cron scheduling (e.g., "America/Chicago", "UTC")
     telegram_bot_token: Optional[str] = None  # Telegram bot token for notifications
     telegram_chat_id: Optional[str] = None  # Telegram chat ID to send notifications to
+    telegram_send_as_file: bool = False  # Send photos as files (True) or compressed photos (False)
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -47,7 +48,8 @@ class Config:
             run_immediately=os.getenv('RUN_IMMEDIATELY', '').lower() in ('true', '1', 'yes'),
             timezone=os.getenv('TZ', 'UTC'),
             telegram_bot_token=os.getenv('TELEGRAM_BOT_TOKEN', None),
-            telegram_chat_id=os.getenv('TELEGRAM_CHAT_ID', None)
+            telegram_chat_id=os.getenv('TELEGRAM_CHAT_ID', None),
+            telegram_send_as_file=os.getenv('TELEGRAM_SEND_AS_FILE', 'true').lower() in ('true', '1', 'yes')
         )
 
     @classmethod

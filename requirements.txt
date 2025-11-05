@@ -12,5 +12,8 @@ piexif>=1.1.3
 schedule>=1.2.2
 croniter>=1.4.1
 
+# Telegram bot
+python-telegram-bot>=22.0
+
 # Optional: Better CLI output
 colorama>=0.4.6

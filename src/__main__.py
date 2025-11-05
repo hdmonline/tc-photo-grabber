@@ -15,6 +15,7 @@ from .config import Config
 from .client import TransparentClassroomClient
 from .scheduler import Scheduler
 from .telegram_notifier import TelegramNotifier
+from .telegram_bot import TelegramBotHandler
 
 
 def setup_logging(verbose: bool = False):
@@ -258,15 +259,29 @@ Examples:
         print()
         sys.exit(0)
 
-    # Initialize Telegram notifier if configured
+    # Initialize Telegram bot and notifier if configured
     telegram_notifier = None
+    telegram_bot = None
     if config.telegram_bot_token and config.telegram_chat_id:
-        logger.info("Initializing Telegram notifier...")
-        telegram_notifier = TelegramNotifier(config.telegram_bot_token, config.telegram_chat_id)
+        logger.info("Initializing Telegram bot and notifier...")
+        
+        # Initialize bot handler for commands
+        telegram_bot = TelegramBotHandler(
+            config.telegram_bot_token, 
+            config.telegram_chat_id, 
+            config.cache_dir
+        )
+        
+        # Initialize notifier for sending messages/photos
+        telegram_notifier = TelegramNotifier(
+            config.telegram_bot_token, 
+            config.telegram_chat_id,
+            telegram_bot
+        )
         
         # Test connection
         if telegram_notifier.test_connection():
-            logger.info("Telegram notifier initialized successfully")
+            logger.info("Telegram initialized successfully")
         else:
             logger.warning("Telegram connection test failed, notifications may not work")
     
@@ -284,7 +299,7 @@ Examples:
             """Wrapper for scheduler"""
             download_photos(config, telegram_notifier)
 
-        scheduler = Scheduler(download_job)
+        scheduler = Scheduler(download_job, telegram_bot)
         try:
             # Use CLI arg if provided, otherwise use config value
             run_now = args.run_immediately or config.run_immediately
