@@ -10,13 +10,12 @@ import os
 import json
 import logging
 import requests
+import filetype
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from bs4 import BeautifulSoup
-from fractions import Fraction
 import subprocess
-import piexif
 
 from .config import Config
 
@@ -148,38 +147,40 @@ class TransparentClassroomClient:
         self.logger.info(f"Crawling complete. Found {len(photos)} total posts across {page} pages")
         return photos
 
-    @staticmethod
-    def _to_deg(value: float, loc: List[str]) -> tuple:
-        """Convert decimal coordinates to degrees, minutes, seconds"""
-        loc_value = loc[1] if value < 0 else loc[0]
-        abs_value = abs(value)
-        deg = int(abs_value)
-        t1 = (abs_value - deg) * 60
-        min = int(t1)
-        sec = round((t1 - min) * 60, 5)
-        return deg, min, sec, loc_value
-
-    @staticmethod
-    def _change_to_rational(number: float) -> tuple:
-        """Convert number to rational for EXIF"""
-        f = Fraction(str(number))
-        return (f.numerator, f.denominator)
-
-    def set_iptc_metadata(self, image_path: str, title: str, creator: str) -> None:
-        """Set IPTC metadata using exiftool"""
+    def set_metadata(self, image_path: str, title: str, creator: str, created_at: datetime) -> None:
+        """Set metadata using exiftool - compatible with Synology Photos and all image formats"""
         try:
             command = [
                 'exiftool',
                 '-overwrite_original',  # Don't create backup files
+                '-ignoreMinorErrors',   # Don't fail on minor issues
+                # EXIF tags (widely supported)
+                f'-EXIF:ImageDescription={title}',
+                f'-EXIF:Artist={creator}',
+                f'-EXIF:DateTimeOriginal={created_at.strftime("%Y:%m:%d %H:%M:%S")}',
+                # GPS data (works for all formats via EXIF/XMP)
+                f'-EXIF:GPSLatitude={abs(self.config.school_lat)}',
+                f'-EXIF:GPSLatitudeRef={"N" if self.config.school_lat >= 0 else "S"}',
+                f'-EXIF:GPSLongitude={abs(self.config.school_lng)}',
+                f'-EXIF:GPSLongitudeRef={"E" if self.config.school_lng >= 0 else "W"}',
+                # IPTC tags (for JPEG/TIFF - will be ignored for PNG)
+                f'-IPTC:Caption-Abstract={title}',
                 f'-IPTC:ObjectName={title}',
                 f'-IPTC:By-line={creator}',
                 f'-IPTC:Keywords={self.config.school_keywords}',
+                # XMP tags (universal - works for PNG, JPEG, TIFF, etc.)
+                f'-XMP:Description={title}',
+                f'-XMP:Title={title}',
+                f'-XMP:Creator={creator}',
+                f'-XMP:Subject={self.config.school_keywords}',
                 image_path
             ]
-            subprocess.run(command, check=True, capture_output=True)
+            result = subprocess.run(command, check=True, capture_output=True, text=True)
+            if result.stderr:
+                self.logger.debug(f"Exiftool output: {result.stderr}")
         except subprocess.CalledProcessError as e:
-            self.logger.warning(f"Failed to set IPTC metadata: {str(e)}")
-            # Don't raise - IPTC metadata is optional
+            self.logger.warning(f"Failed to set metadata: {e.stderr if e.stderr else str(e)}")
+            # Don't raise - metadata is optional
 
     def download_and_embed_metadata(self, photo_data: Dict[str, Any]) -> Optional[Path]:
         """
@@ -217,49 +218,42 @@ class TransparentClassroomClient:
             response = self.session.get(photo_url)
             response.raise_for_status()
             
-            # Verify it's an image by checking content type
-            content_type = response.headers.get('content-type', '').lower()
-            if not content_type.startswith('image/'):
-                self.logger.warning(f"Skipping photo {photo_id}: not an image (content-type: {content_type})")
+            # Detect actual image format from content
+            kind = filetype.guess(response.content)
+            if kind is None or not kind.mime.startswith('image/'):
+                self.logger.warning(f"Skipping photo {photo_id}: not a valid image file")
                 return None
+            
+            # Get the correct extension from the actual file content
+            actual_ext = kind.extension
+            self.logger.debug(f"Photo {photo_id}: URL extension={url_ext}, actual format={actual_ext}")
+            
+            # Normalize extensions (jpeg and jpg are the same, tiff and tif are the same)
+            def normalize_ext(ext):
+                if ext in ['jpeg', 'jpg']:
+                    return 'jpg'
+                elif ext in ['tiff', 'tif']:
+                    return 'tif'
+                return ext
+            
+            url_ext_normalized = normalize_ext(url_ext)
+            actual_ext_normalized = normalize_ext(actual_ext)
+            
+            # If the actual format differs from URL extension, use the actual one
+            if actual_ext_normalized != url_ext_normalized:
+                self.logger.warning(f"Photo {photo_id}: URL extension '{url_ext}' doesn't match actual format '{actual_ext}', using '{actual_ext}'")
+                image_path = Path(self.config.output_dir) / f"{date_str}_{photo_id}.{actual_ext}"
+                
+                # Check again if photo with correct extension exists
+                if image_path.exists():
+                    self.logger.info(f"Photo {photo_id} already exists with correct extension, skipping")
+                    return None
 
             with open(image_path, 'wb') as file:
                 file.write(response.content)
 
-            # Update EXIF metadata (only for JPEG/TIFF files)
-            file_ext = image_path.suffix.lower()
-            if file_ext in ['.jpg', '.jpeg', '.tiff', '.tif']:
-                try:
-                    exif_dict = piexif.load(str(image_path))
-
-                    # Basic EXIF data
-                    exif_dict['0th'][piexif.ImageIFD.ImageDescription] = description.encode('utf-8')
-                    exif_dict['Exif'][piexif.ExifIFD.DateTimeOriginal] = created_at.strftime("%Y:%m:%d %H:%M:%S").encode('utf-8')
-
-                    # GPS data
-                    lat_deg = self._to_deg(self.config.school_lat, ["N", "S"])
-                    lng_deg = self._to_deg(self.config.school_lng, ["E", "W"])
-
-                    exif_dict["GPS"] = {
-                        piexif.GPSIFD.GPSLatitudeRef: lat_deg[3].encode('utf-8'),
-                        piexif.GPSIFD.GPSLatitude: tuple(self._change_to_rational(x) for x in lat_deg[:3]),
-                        piexif.GPSIFD.GPSLongitudeRef: lng_deg[3].encode('utf-8'),
-                        piexif.GPSIFD.GPSLongitude: tuple(self._change_to_rational(x) for x in lng_deg[:3]),
-                    }
-
-                    # Write EXIF data
-                    exif_bytes = piexif.dump(exif_dict)
-                    piexif.insert(exif_bytes, str(image_path))
-                    
-                    self.logger.debug(f"Successfully embedded EXIF metadata for photo {photo_id}")
-                except Exception as e:
-                    self.logger.warning(f"Could not embed EXIF metadata for photo {photo_id}: {str(e)}")
-                    # Continue - file was downloaded successfully even if EXIF failed
-            else:
-                self.logger.info(f"Skipping EXIF metadata for non-JPEG/TIFF file: {image_path.name}")
-
-            # Set IPTC metadata (works for all image types via exiftool)
-            self.set_iptc_metadata(str(image_path), description, creator)
+            # Set all metadata (description, creator, GPS, date) for all formats using exiftool
+            self.set_metadata(str(image_path), description, creator, created_at)
 
             # Set file timestamps
             timestamp = created_at.timestamp()

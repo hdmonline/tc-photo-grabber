@@ -1,4 +1,4 @@
-# 📸 Transparent Classroom Photos Grabber
+# 📸 Transparent Classroom Photo Grabber
 
 > Automated photo downloader with cron scheduling, Telegram notifications, and Docker support
 
@@ -21,18 +21,8 @@
 ## 📋 Requirements
 
 ### System Dependencies
-- Python 3.11 or higher
+- Python 3.14 or higher
 - `exiftool` for IPTC metadata (optional but recommended)
-
-### Python Dependencies
-- requests
-- beautifulsoup4
-- python-dotenv
-- PyYAML
-- piexif
-- schedule
-- croniter (for cron expression support)
-- colorama (optional)
 
 ## 🔧 Installation
 
@@ -153,8 +143,10 @@ python -m src --cron --schedule hourly
 The Telegram bot runs in a background thread and responds instantly to commands. **Telegram is completely optional** - the app works fine without it.
 
 ### Setup
-1. Create bot with [@BotFather](https://t.me/botfather)
-2. Get chat ID (see [TELEGRAM_SETUP.md](TELEGRAM_SETUP.md))
+1. Create bot with [@BotFather](https://t.me/botfather) - send `/newbot` and follow instructions
+2. Get chat ID:
+   - For personal chat: send a message to your bot, then visit `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates`
+   - For channel: add bot as admin, use `@channelname` or numeric ID
 3. Set env vars:
 ```bash
 TELEGRAM_BOT_TOKEN=123456:ABC-DEF...
@@ -210,7 +202,6 @@ kubectl logs -f deployment/tc-photo-grabber
 
 Edit `k8s-deployment.yaml` to customize schedule (default: daily at 2 AM).
 
-
 ## 🛠️ Development
 
 ```bash
@@ -222,26 +213,6 @@ pytest tests/
 
 # Format & lint
 black src/ && pylint src/
-```
-
-## 🐛 Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Login fails | Verify credentials, check website access |
-| Photos not downloading | Check output dir permissions, verify IDs |
-| Docker exits | `docker logs tc-photo-grabber`, check env vars |
-| K8s CrashLoopBackOff | Check secret exists, view pod logs |
-| Telegram "chat not found" | Add bot to channel/group as admin |
-
-## 📊 Logs
-
-```bash
-# Docker
-docker logs -f tc-photo-grabber
-
-# Kubernetes
-kubectl logs -f deployment/tc-photo-grabber
 ```
 
 ## 📝 License
