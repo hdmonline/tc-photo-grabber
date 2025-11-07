@@ -269,7 +269,8 @@ Examples:
         telegram_bot = TelegramBotHandler(
             config.telegram_bot_token, 
             config.telegram_chat_id, 
-            config.cache_dir
+            config.cache_dir,
+            config.output_dir  # Pass output_dir for photo retrieval
         )
         
         # Initialize notifier for sending messages/photos

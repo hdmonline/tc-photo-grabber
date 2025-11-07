@@ -15,6 +15,7 @@ croniter>=1.4.1
 
 # Telegram bot
 python-telegram-bot>=22.0
+python-telegram-bot-calendar>=1.0.5
 
 # Optional: Better CLI output
 colorama>=0.4.6
