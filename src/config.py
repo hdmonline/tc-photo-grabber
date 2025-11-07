@@ -4,15 +4,17 @@ Loads settings from environment variables or config file
 """
 
 import os
-import yaml
-from typing import Optional
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
+
+import yaml
 
 
 @dataclass
 class Config:
     """Configuration for Transparent Classroom API"""
+
     email: str
     password: str
     school_id: int
@@ -25,31 +27,37 @@ class Config:
     cache_timeout: int = 14400  # 4 hours in seconds
     cron_expression: Optional[str] = None  # Optional cron expression for scheduling
     run_immediately: bool = False  # Run immediately on startup in cron mode
-    timezone: str = "UTC"  # Timezone for cron scheduling (e.g., "America/Chicago", "UTC")
+    timezone: str = (
+        "UTC"  # Timezone for cron scheduling (e.g., "America/Chicago", "UTC")
+    )
     telegram_bot_token: Optional[str] = None  # Telegram bot token for notifications
     telegram_chat_id: Optional[str] = None  # Telegram chat ID to send notifications to
-    telegram_send_as_file: bool = False  # Send photos as files (True) or compressed photos (False)
+    telegram_send_as_file: bool = (
+        False  # Send photos as files (True) or compressed photos (False)
+    )
 
     @classmethod
     def from_env(cls) -> "Config":
         """Load configuration from environment variables"""
         return cls(
-            email=os.getenv('TC_EMAIL', ''),
-            password=os.getenv('TC_PASSWORD', ''),
-            school_id=int(os.getenv('SCHOOL', 0)),
-            child_id=int(os.getenv('CHILD', 0)),
-            school_lat=float(os.getenv('SCHOOL_LAT', 0.0)),
-            school_lng=float(os.getenv('SCHOOL_LNG', 0.0)),
-            school_keywords=os.getenv('SCHOOL_KEYWORDS', ''),
-            output_dir=os.getenv('OUTPUT_DIR', './photos'),
-            cache_dir=os.getenv('CACHE_DIR', './cache'),
-            cache_timeout=int(os.getenv('CACHE_TIMEOUT', 14400)),
-            cron_expression=os.getenv('CRON_EXPRESSION', None),
-            run_immediately=os.getenv('RUN_IMMEDIATELY', '').lower() in ('true', '1', 'yes'),
-            timezone=os.getenv('TZ', 'UTC'),
-            telegram_bot_token=os.getenv('TELEGRAM_BOT_TOKEN', None),
-            telegram_chat_id=os.getenv('TELEGRAM_CHAT_ID', None),
-            telegram_send_as_file=os.getenv('TELEGRAM_SEND_AS_FILE', 'true').lower() in ('true', '1', 'yes')
+            email=os.getenv("TC_EMAIL", ""),
+            password=os.getenv("TC_PASSWORD", ""),
+            school_id=int(os.getenv("SCHOOL", 0)),
+            child_id=int(os.getenv("CHILD", 0)),
+            school_lat=float(os.getenv("SCHOOL_LAT", 0.0)),
+            school_lng=float(os.getenv("SCHOOL_LNG", 0.0)),
+            school_keywords=os.getenv("SCHOOL_KEYWORDS", ""),
+            output_dir=os.getenv("OUTPUT_DIR", "./photos"),
+            cache_dir=os.getenv("CACHE_DIR", "./cache"),
+            cache_timeout=int(os.getenv("CACHE_TIMEOUT", 14400)),
+            cron_expression=os.getenv("CRON_EXPRESSION", None),
+            run_immediately=os.getenv("RUN_IMMEDIATELY", "").lower()
+            in ("true", "1", "yes"),
+            timezone=os.getenv("TZ", "UTC"),
+            telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", None),
+            telegram_chat_id=os.getenv("TELEGRAM_CHAT_ID", None),
+            telegram_send_as_file=os.getenv("TELEGRAM_SEND_AS_FILE", "true").lower()
+            in ("true", "1", "yes"),
         )
 
     @classmethod
@@ -61,32 +69,32 @@ class Config:
         if not config_path.exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
 
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             data = yaml.safe_load(f)
 
         return cls(
-            email=data.get('email', ''),
-            password=data.get('password', ''),
-            school_id=int(data.get('school_id', 0)),
-            child_id=int(data.get('child_id', 0)),
-            school_lat=float(data.get('school_lat', 0.0)),
-            school_lng=float(data.get('school_lng', 0.0)),
-            school_keywords=data.get('school_keywords', ''),
-            output_dir=data.get('output_dir', './photos'),
-            cache_dir=data.get('cache_dir', './cache'),
-            cache_timeout=int(data.get('cache_timeout', 14400)),
-            cron_expression=data.get('cron_expression', None),
-            run_immediately=bool(data.get('run_immediately', False)),
-            timezone=data.get('timezone', 'UTC'),
-            telegram_bot_token=data.get('telegram_bot_token', None),
-            telegram_chat_id=data.get('telegram_chat_id', None)
+            email=data.get("email", ""),
+            password=data.get("password", ""),
+            school_id=int(data.get("school_id", 0)),
+            child_id=int(data.get("child_id", 0)),
+            school_lat=float(data.get("school_lat", 0.0)),
+            school_lng=float(data.get("school_lng", 0.0)),
+            school_keywords=data.get("school_keywords", ""),
+            output_dir=data.get("output_dir", "./photos"),
+            cache_dir=data.get("cache_dir", "./cache"),
+            cache_timeout=int(data.get("cache_timeout", 14400)),
+            cron_expression=data.get("cron_expression", None),
+            run_immediately=bool(data.get("run_immediately", False)),
+            timezone=data.get("timezone", "UTC"),
+            telegram_bot_token=data.get("telegram_bot_token", None),
+            telegram_chat_id=data.get("telegram_chat_id", None),
         )
 
     @staticmethod
     def get_config_file_path() -> Path:
         """Get the standard config file path"""
-        config_dir = Path.home() / '.config' / 'transparent-classroom-photos-grabber'
-        return config_dir / 'config.yaml'
+        config_dir = Path.home() / ".config" / "transparent-classroom-photos-grabber"
+        return config_dir / "config.yaml"
 
     @classmethod
     def load(cls) -> "Config":
@@ -94,7 +102,12 @@ class Config:
         # Try environment variables first
         try:
             config = cls.from_env()
-            if config.email and config.password and config.school_id and config.child_id:
+            if (
+                config.email
+                and config.password
+                and config.school_id
+                and config.child_id
+            ):
                 return config
         except Exception:
             pass
@@ -117,26 +130,21 @@ class Config:
         config_path.parent.mkdir(parents=True, exist_ok=True)
 
         data = {
-            'email': self.email,
-            'password': self.password,
-            'school_id': self.school_id,
-            'child_id': self.child_id,
-            'school_lat': self.school_lat,
-            'school_lng': self.school_lng,
-            'school_keywords': self.school_keywords,
-            'output_dir': self.output_dir,
-            'cache_dir': self.cache_dir,
-            'cache_timeout': self.cache_timeout
+            "email": self.email,
+            "password": self.password,
+            "school_id": self.school_id,
+            "child_id": self.child_id,
+            "school_lat": self.school_lat,
+            "school_lng": self.school_lng,
+            "school_keywords": self.school_keywords,
+            "output_dir": self.output_dir,
+            "cache_dir": self.cache_dir,
+            "cache_timeout": self.cache_timeout,
         }
 
-        with open(config_path, 'w') as f:
+        with open(config_path, "w") as f:
             yaml.dump(data, f, default_flow_style=False)
 
     def validate(self) -> bool:
         """Validate that required configuration is present"""
-        return all([
-            self.email,
-            self.password,
-            self.school_id > 0,
-            self.child_id > 0
-        ])
+        return all([self.email, self.password, self.school_id > 0, self.child_id > 0])

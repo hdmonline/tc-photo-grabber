@@ -1,5 +1,4 @@
 version: '3.8'
-
 services:
   tc-photo-grabber:
     build: .
@@ -7,7 +6,7 @@ services:
     environment:
       # Mode: 'cli' for one-time run, 'cron' for scheduled
       - MODE=cron
-      # Schedule options: 'hourly', 'daily', 'weekly', 
+      # Schedule options: 'hourly', 'daily', 'weekly',
       # 'every X hours', 'every day at HH:MM'
       - SCHEDULE=daily
       # Optional: Cron expression (takes precedence over SCHEDULE)

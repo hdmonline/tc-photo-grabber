@@ -4,13 +4,14 @@ Supports configurable download schedules and cron expressions
 """
 
 import logging
-import schedule
-import time
 import threading
-from typing import Callable, Optional
+import time
 from datetime import datetime
-from croniter import croniter
+from typing import Callable, Optional
 from zoneinfo import ZoneInfo
+
+import schedule
+from croniter import croniter
 
 
 class Scheduler:
@@ -24,7 +25,7 @@ class Scheduler:
             download_func: Function to call on each scheduled run
             telegram_bot: Optional TelegramBotHandler instance for command handling
         """
-        self.logger = logging.getLogger('Scheduler')
+        self.logger = logging.getLogger("Scheduler")
         self.download_func = download_func
         self.telegram_bot = telegram_bot
         self.telegram_thread = None
@@ -37,9 +38,17 @@ class Scheduler:
             self.download_func()
             self.logger.info(f"Completed scheduled download at {datetime.now()}")
         except Exception as e:
-            self.logger.error(f"Error during scheduled download: {str(e)}", exc_info=True)
+            self.logger.error(
+                f"Error during scheduled download: {str(e)}", exc_info=True
+            )
 
-    def start(self, schedule_spec: str = "daily", cron_expression: Optional[str] = None, run_immediately: bool = False, timezone: str = "UTC"):
+    def start(
+        self,
+        schedule_spec: str = "daily",
+        cron_expression: Optional[str] = None,
+        run_immediately: bool = False,
+        timezone: str = "UTC",
+    ):
         """
         Start the scheduler
 
@@ -55,11 +64,13 @@ class Scheduler:
         """
         self.running = True
         self._timezone = timezone
-        
+
         # If cron expression is provided, use it
         if cron_expression:
             if self._is_valid_cron(cron_expression):
-                self.logger.info(f"Starting scheduler with cron expression: {cron_expression} (timezone: {timezone})")
+                self.logger.info(
+                    f"Starting scheduler with cron expression: {cron_expression} (timezone: {timezone})"
+                )
                 self._use_cron_expression = True
                 self._cron_expression = cron_expression
                 # Use timezone-aware datetime
@@ -68,12 +79,16 @@ class Scheduler:
                     now = datetime.now(tz)
                     self._cron_iter = croniter(cron_expression, now)
                 except Exception as e:
-                    self.logger.error(f"Invalid timezone '{timezone}': {e}, falling back to UTC")
+                    self.logger.error(
+                        f"Invalid timezone '{timezone}': {e}, falling back to UTC"
+                    )
                     now = datetime.now(ZoneInfo("UTC"))
                     self._cron_iter = croniter(cron_expression, now)
                     self._timezone = "UTC"
             else:
-                self.logger.error(f"Invalid cron expression: {cron_expression}, falling back to schedule_spec")
+                self.logger.error(
+                    f"Invalid cron expression: {cron_expression}, falling back to schedule_spec"
+                )
                 self._use_cron_expression = False
                 self._setup_schedule_spec(schedule_spec)
         else:
@@ -85,8 +100,7 @@ class Scheduler:
         if self.telegram_bot:
             self.logger.info("Starting Telegram bot in background thread...")
             self.telegram_thread = threading.Thread(
-                target=self.telegram_bot.run_polling_sync,
-                daemon=True
+                target=self.telegram_bot.run_polling_sync, daemon=True
             )
             self.telegram_thread.start()
 
@@ -115,15 +129,18 @@ class Scheduler:
             next_run = self._cron_iter.get_next(datetime)
             now = datetime.now(tz)
             sleep_seconds = (next_run - now).total_seconds()
-            
+
             if sleep_seconds > 0:
-                self.logger.info(f"Next run scheduled at {next_run.strftime('%Y-%m-%d %H:%M:%S %Z')} (sleeping for {sleep_seconds:.0f} seconds)")
+                self.logger.info(
+                    f"Next run scheduled at {next_run.strftime('%Y-%m-%d %H:%M:%S %Z')} "
+                    f"(sleeping for {sleep_seconds:.0f} seconds)"
+                )
                 # Sleep in smaller intervals to allow for graceful shutdown
                 while sleep_seconds > 0 and self.running:
                     sleep_time = min(10, sleep_seconds)  # Check every 10 seconds
                     time.sleep(sleep_time)
                     sleep_seconds -= sleep_time
-            
+
             if self.running:
                 self.run_job()
 
@@ -148,7 +165,9 @@ class Scheduler:
             # Parse custom schedule like "every 6 hours" or "every day at 10:30"
             self._parse_custom_schedule(schedule_spec)
         else:
-            self.logger.warning(f"Unknown schedule spec: {schedule_spec}, defaulting to daily")
+            self.logger.warning(
+                f"Unknown schedule spec: {schedule_spec}, defaulting to daily"
+            )
             schedule.every().day.at("02:00").do(self.run_job)
 
     def _parse_custom_schedule(self, schedule_spec: str):
@@ -158,7 +177,7 @@ class Scheduler:
         # Handle "every X hours"
         if "hour" in spec_lower:
             try:
-                hours = int(''.join(filter(str.isdigit, spec_lower.split("hour")[0])))
+                hours = int("".join(filter(str.isdigit, spec_lower.split("hour")[0])))
                 schedule.every(hours).hours.do(self.run_job)
                 self.logger.info(f"Scheduled to run every {hours} hours")
             except ValueError:
@@ -168,7 +187,9 @@ class Scheduler:
         # Handle "every X minutes"
         elif "minute" in spec_lower:
             try:
-                minutes = int(''.join(filter(str.isdigit, spec_lower.split("minute")[0])))
+                minutes = int(
+                    "".join(filter(str.isdigit, spec_lower.split("minute")[0]))
+                )
                 schedule.every(minutes).minutes.do(self.run_job)
                 self.logger.info(f"Scheduled to run every {minutes} minutes")
             except ValueError:
@@ -182,11 +203,15 @@ class Scheduler:
                 schedule.every().day.at(time_str).do(self.run_job)
                 self.logger.info(f"Scheduled to run every day at {time_str}")
             except Exception as e:
-                self.logger.error(f"Could not parse time from: {schedule_spec}, error: {e}")
+                self.logger.error(
+                    f"Could not parse time from: {schedule_spec}, error: {e}"
+                )
                 schedule.every().day.at("02:00").do(self.run_job)
 
         else:
-            self.logger.warning(f"Unknown custom schedule: {schedule_spec}, defaulting to daily")
+            self.logger.warning(
+                f"Unknown custom schedule: {schedule_spec}, defaulting to daily"
+            )
             schedule.every().day.at("02:00").do(self.run_job)
 
     def stop(self):

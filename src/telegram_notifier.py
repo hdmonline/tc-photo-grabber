@@ -4,9 +4,10 @@ Sends notifications and photos to a Telegram channel/chat
 """
 
 import logging
-import requests
 from pathlib import Path
 from typing import List, Optional
+
+import requests
 
 
 class TelegramNotifier:
@@ -21,7 +22,7 @@ class TelegramNotifier:
             chat_id: Telegram chat ID (can be a channel, group, or user)
             bot_handler: Optional TelegramBotHandler instance for settings
         """
-        self.logger = logging.getLogger('TelegramNotifier')
+        self.logger = logging.getLogger("TelegramNotifier")
         self.bot_token = bot_token
         self.chat_id = chat_id
         self.base_url = f"https://api.telegram.org/bot{bot_token}"
@@ -40,30 +41,29 @@ class TelegramNotifier:
         """
         try:
             url = f"{self.base_url}/sendMessage"
-            data = {
-                "chat_id": self.chat_id,
-                "text": text
-            }
+            data = {"chat_id": self.chat_id, "text": text}
             if parse_mode:
                 data["parse_mode"] = parse_mode
-                
+
             response = requests.post(url, json=data, timeout=30)
             response.raise_for_status()
-            self.logger.info(f"Successfully sent message to Telegram")
+            self.logger.info("Successfully sent message to Telegram")
             return True
         except requests.exceptions.HTTPError as e:
             # Log detailed error information
             error_msg = str(e)
-            if hasattr(e.response, 'text'):
+            if hasattr(e.response, "text"):
                 try:
                     error_detail = e.response.json()
                     error_msg = f"{error_msg}\nDetails: {error_detail}"
-                    
+
                     # If Markdown parsing failed, retry without formatting
                     if parse_mode and "can't parse" in str(error_detail).lower():
-                        self.logger.warning("Markdown parsing failed, retrying without formatting")
+                        self.logger.warning(
+                            "Markdown parsing failed, retrying without formatting"
+                        )
                         return self.send_message(text, parse_mode=None)
-                except:
+                except Exception:
                     error_msg = f"{error_msg}\nResponse: {e.response.text}"
             self.logger.error(f"Failed to send Telegram message: {error_msg}")
             self.logger.error(f"Chat ID used: {self.chat_id}")
@@ -85,29 +85,33 @@ class TelegramNotifier:
             True if successful, False otherwise
         """
         try:
-            send_as_file = self.bot_handler.get_send_as_file() if self.bot_handler else True
-            
+            send_as_file = (
+                self.bot_handler.get_send_as_file() if self.bot_handler else True
+            )
+
             if send_as_file:
                 # Send as document to preserve original resolution
                 url = f"{self.base_url}/sendDocument"
-                file_key = 'document'
+                file_key = "document"
                 timeout = 120
             else:
                 # Send as photo (compressed)
                 url = f"{self.base_url}/sendPhoto"
-                file_key = 'photo'
+                file_key = "photo"
                 timeout = 60
-            
-            with open(photo_path, 'rb') as photo_file:
+
+            with open(photo_path, "rb") as photo_file:
                 files = {file_key: photo_file}
-                data = {'chat_id': self.chat_id}
+                data = {"chat_id": self.chat_id}
                 if caption:
-                    data['caption'] = caption
-                
+                    data["caption"] = caption
+
                 response = requests.post(url, data=data, files=files, timeout=timeout)
                 response.raise_for_status()
-                
-            self.logger.debug(f"Successfully sent photo: {photo_path.name} (as {'file' if send_as_file else 'photo'})")
+
+            self.logger.debug(
+                f"Successfully sent photo: {photo_path.name} (as {'file' if send_as_file else 'photo'})"
+            )
             return True
         except Exception as e:
             self.logger.error(f"Failed to send photo {photo_path.name}: {str(e)}")
@@ -126,13 +130,13 @@ class TelegramNotifier:
         """
         sent_count = 0
         photos_to_send = photo_items[:max_photos]
-        
+
         self.logger.info(f"Sending {len(photos_to_send)} photos to Telegram")
-        
+
         for item in photos_to_send:
-            photo_path = item['path']
-            description = item.get('description', '')
-            
+            photo_path = item["path"]
+            description = item.get("description", "")
+
             # Use only the description as caption (no filename)
             caption = None
             if description:
@@ -140,17 +144,21 @@ class TelegramNotifier:
                 if len(description) > 1024:
                     description = description[:1020] + "..."
                 caption = description
-            
+
             if self.send_photo(photo_path, caption):
                 sent_count += 1
-        
+
         if len(photo_items) > max_photos:
             remaining = len(photo_items) - max_photos
-            self.send_message(f"_{remaining} more photos were downloaded but not sent to avoid spam._")
-        
+            self.send_message(
+                f"_{remaining} more photos were downloaded but not sent to avoid spam._"
+            )
+
         return sent_count
 
-    def send_download_summary(self, downloaded_count: int, total_posts: int, photo_items: List[dict]) -> bool:
+    def send_download_summary(
+        self, downloaded_count: int, total_posts: int, photo_items: List[dict]
+    ) -> bool:
         """
         Send a summary message with download statistics
 
@@ -165,26 +173,30 @@ class TelegramNotifier:
         try:
             if downloaded_count == 0:
                 # Don't send any notification if no new photos
-                self.logger.info("No new photos downloaded, skipping Telegram notification")
+                self.logger.info(
+                    "No new photos downloaded, skipping Telegram notification"
+                )
                 return True
-            
+
             # Send summary message
-            message = f"✅ *Photo Sync Complete*\n\n" \
-                     f"📸 New photos downloaded: *{downloaded_count}*\n" \
-                     f"📋 Total posts scanned: {total_posts}\n\n"
-            
+            message = (
+                f"✅ *Photo Sync Complete*\n\n"
+                f"📸 New photos downloaded: *{downloaded_count}*\n"
+                f"📋 Total posts scanned: {total_posts}\n\n"
+            )
+
             if photo_items:
                 message += f"Sending {min(len(photo_items), 10)} photos..."
-            
+
             self.send_message(message)
-            
+
             # Send photos if any
             if photo_items:
                 sent = self.send_photos_batch(photo_items, max_photos=10)
                 self.logger.info(f"Sent {sent}/{len(photo_items)} photos to Telegram")
-            
+
             return True
-            
+
         except Exception as e:
             self.logger.error(f"Failed to send download summary: {str(e)}")
             return False
@@ -201,12 +213,12 @@ class TelegramNotifier:
             response = requests.get(url, timeout=10)
             response.raise_for_status()
             bot_info = response.json()
-            
-            if bot_info.get('ok'):
-                bot_name = bot_info.get('result', {}).get('username', 'Unknown')
+
+            if bot_info.get("ok"):
+                bot_name = bot_info.get("result", {}).get("username", "Unknown")
                 self.logger.info(f"Successfully connected to Telegram bot: @{bot_name}")
                 self.logger.info(f"Will send notifications to chat ID: {self.chat_id}")
-                
+
                 # Test connection without sending a message
                 # Just verify the bot API works
                 return True

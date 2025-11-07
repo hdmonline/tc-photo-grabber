@@ -3,19 +3,19 @@ Main entry point for Transparent Classroom Photos Grabber
 Supports both CLI mode and cron scheduled mode
 """
 
-import os
-import sys
-import logging
 import argparse
+import logging
+import sys
 from pathlib import Path
-from dotenv import load_dotenv
 from typing import Optional
 
-from .config import Config
+from dotenv import load_dotenv
+
 from .client import TransparentClassroomClient
+from .config import Config
 from .scheduler import Scheduler
-from .telegram_notifier import TelegramNotifier
 from .telegram_bot import TelegramBotHandler
+from .telegram_notifier import TelegramNotifier
 
 
 def setup_logging(verbose: bool = False):
@@ -23,14 +23,14 @@ def setup_logging(verbose: bool = False):
     level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(
         level=level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler(sys.stdout)
-        ]
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(sys.stdout)],
     )
 
 
-def download_photos(config: Config, telegram_notifier: Optional[TelegramNotifier] = None) -> int:
+def download_photos(
+    config: Config, telegram_notifier: Optional[TelegramNotifier] = None
+) -> int:
     """
     Download photos using the provided configuration
 
@@ -41,7 +41,7 @@ def download_photos(config: Config, telegram_notifier: Optional[TelegramNotifier
     Returns:
         Number of photos downloaded
     """
-    logger = logging.getLogger('Main')
+    logger = logging.getLogger("Main")
 
     # Validate configuration
     if not config.validate():
@@ -60,33 +60,35 @@ def download_photos(config: Config, telegram_notifier: Optional[TelegramNotifier
     try:
         client = TransparentClassroomClient(config)
         result = client.download_all_photos()
-        
-        downloaded_count = result['downloaded_count']
-        total_posts = result['total_posts']
-        photo_items = result['downloaded_items']
-        
+
+        downloaded_count = result["downloaded_count"]
+        total_posts = result["total_posts"]
+        photo_items = result["downloaded_items"]
+
         logger.info(f"Successfully downloaded {downloaded_count} new photos")
-        
+
         # Send Telegram notification if configured
         if telegram_notifier:
             logger.info("Sending Telegram notification...")
-            telegram_notifier.send_download_summary(downloaded_count, total_posts, photo_items)
-        
+            telegram_notifier.send_download_summary(
+                downloaded_count, total_posts, photo_items
+            )
+
         return downloaded_count
     except Exception as e:
         logger.error(f"Failed to download photos: {str(e)}", exc_info=True)
-        
+
         # Send error notification to Telegram if configured
         if telegram_notifier:
             telegram_notifier.send_message(f"❌ *Photo Sync Failed*\n\nError: {str(e)}")
-        
+
         sys.exit(1)
 
 
 def main():
     """Main entry point"""
     parser = argparse.ArgumentParser(
-        description='Download photos from Transparent Classroom',
+        description="Download photos from Transparent Classroom",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -115,78 +117,69 @@ Examples:
 
   # Verbose output for debugging
   tc-photo-grabber --verbose
-        """
+        """,
     )
 
     parser.add_argument(
-        '--output', '-o',
+        "--output",
+        "-o",
         type=str,
-        help='Output directory for downloaded photos (default: ./photos)'
+        help="Output directory for downloaded photos (default: ./photos)",
     )
 
     parser.add_argument(
-        '--cache-dir',
+        "--cache-dir",
         type=str,
-        help='Cache directory for API responses (default: ./cache)'
+        help="Cache directory for API responses (default: ./cache)",
     )
 
     parser.add_argument(
-        '--cron',
-        action='store_true',
-        help='Run in cron mode with scheduled downloads'
+        "--cron", action="store_true", help="Run in cron mode with scheduled downloads"
     )
 
     parser.add_argument(
-        '--schedule',
+        "--schedule",
         type=str,
-        default='daily',
-        help='Schedule for cron mode (default: daily). '
-             'Options: hourly, daily, weekly, "every X hours", "every day at HH:MM"'
+        default="daily",
+        help="Schedule for cron mode (default: daily). "
+        'Options: hourly, daily, weekly, "every X hours", "every day at HH:MM"',
     )
 
     parser.add_argument(
-        '--cron-expression',
+        "--cron-expression",
         type=str,
         help='Cron expression for scheduling (e.g., "0 2 * * *" for daily at 2am). '
-             'Takes precedence over --schedule. Can also be set via CRON_EXPRESSION env var.'
+        "Takes precedence over --schedule. Can also be set via CRON_EXPRESSION env var.",
     )
 
     parser.add_argument(
-        '--run-immediately',
-        action='store_true',
-        help='In cron mode, run the job immediately on startup before waiting for schedule. '
-             'Can also be set via RUN_IMMEDIATELY env var (true/1/yes)'
+        "--run-immediately",
+        action="store_true",
+        help="In cron mode, run the job immediately on startup before waiting for schedule. "
+        "Can also be set via RUN_IMMEDIATELY env var (true/1/yes)",
+    )
+
+    parser.add_argument("--config", type=str, help="Path to config file (YAML format)")
+
+    parser.add_argument(
+        "--show-config", action="store_true", help="Show current configuration and exit"
     )
 
     parser.add_argument(
-        '--config',
-        type=str,
-        help='Path to config file (YAML format)'
+        "--verbose", "-v", action="store_true", help="Verbose output for debugging"
     )
 
     parser.add_argument(
-        '--show-config',
-        action='store_true',
-        help='Show current configuration and exit'
-    )
-
-    parser.add_argument(
-        '--verbose', '-v',
-        action='store_true',
-        help='Verbose output for debugging'
-    )
-
-    parser.add_argument(
-        '--dry-run',
-        action='store_true',
-        help='Dry run mode - show what would be downloaded without downloading'
+        "--dry-run",
+        action="store_true",
+        help="Dry run mode - show what would be downloaded without downloading",
     )
 
     args = parser.parse_args()
 
     # Setup logging
     setup_logging(args.verbose)
-    logger = logging.getLogger('Main')
+    logger = logging.getLogger("Main")
 
     # Load environment variables from .env file
     load_dotenv()
@@ -226,20 +219,21 @@ Examples:
     # Dry run mode
     if args.dry_run:
         logger.info("DRY RUN MODE - No photos will be downloaded")
-        
+
         # If in cron mode, show scheduling info
         if args.cron:
-            from croniter import croniter
             from datetime import datetime
-            
+
+            from croniter import croniter
+
             cron_expr = args.cron_expression or config.cron_expression
-            print(f"\n=== Cron Schedule Information ===")
-            
+            print("\n=== Cron Schedule Information ===")
+
             if cron_expr:
                 print(f"Cron Expression: {cron_expr}")
                 try:
                     cron = croniter(cron_expr, datetime.now())
-                    print(f"Next 5 scheduled runs:")
+                    print("Next 5 scheduled runs:")
                     for i in range(5):
                         next_run = cron.get_next(datetime)
                         print(f"  {i+1}. {next_run.strftime('%Y-%m-%d %H:%M:%S %A')}")
@@ -247,13 +241,13 @@ Examples:
                     print(f"Error parsing cron expression: {e}")
             else:
                 print(f"Schedule: {args.schedule}")
-                print(f"(Simple schedules don't support dry-run preview)")
+                print("(Simple schedules don't support dry-run preview)")
             print()
-        
+
         # Run the actual dry-run check
         client = TransparentClassroomClient(config)
         photos = client.crawl_all_posts()
-        print(f"\n=== Dry Run Results ===")
+        print("\n=== Dry Run Results ===")
         print(f"Found {len(photos)} posts")
         print(f"Would save to: {config.output_dir}")
         print()
@@ -264,33 +258,33 @@ Examples:
     telegram_bot = None
     if config.telegram_bot_token and config.telegram_chat_id:
         logger.info("Initializing Telegram bot and notifier...")
-        
+
         # Initialize bot handler for commands
         telegram_bot = TelegramBotHandler(
-            config.telegram_bot_token, 
-            config.telegram_chat_id, 
+            config.telegram_bot_token,
+            config.telegram_chat_id,
             config.cache_dir,
-            config.output_dir  # Pass output_dir for photo retrieval
+            config.output_dir,  # Pass output_dir for photo retrieval
         )
-        
+
         # Initialize notifier for sending messages/photos
         telegram_notifier = TelegramNotifier(
-            config.telegram_bot_token, 
-            config.telegram_chat_id,
-            telegram_bot
+            config.telegram_bot_token, config.telegram_chat_id, telegram_bot
         )
-        
+
         # Test connection
         if telegram_notifier.test_connection():
             logger.info("Telegram initialized successfully")
         else:
-            logger.warning("Telegram connection test failed, notifications may not work")
-    
+            logger.warning(
+                "Telegram connection test failed, notifications may not work"
+            )
+
     # Run in cron mode or CLI mode
     if args.cron:
         # Determine cron expression from CLI arg, env var, or config
         cron_expr = args.cron_expression or config.cron_expression
-        
+
         if cron_expr:
             logger.info(f"Starting in cron mode with cron expression: {cron_expr}")
         else:
@@ -305,10 +299,10 @@ Examples:
             # Use CLI arg if provided, otherwise use config value
             run_now = args.run_immediately or config.run_immediately
             scheduler.start(
-                schedule_spec=args.schedule, 
+                schedule_spec=args.schedule,
                 cron_expression=cron_expr,
                 run_immediately=run_now,
-                timezone=config.timezone
+                timezone=config.timezone,
             )
         except KeyboardInterrupt:
             logger.info("Received interrupt signal, shutting down...")
@@ -319,5 +313,5 @@ Examples:
         download_photos(config, telegram_notifier)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
