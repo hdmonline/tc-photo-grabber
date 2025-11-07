@@ -232,9 +232,13 @@ class TransparentClassroomClient:
 
             # Format filename with date and ID
             date_str = created_at.strftime("%Y-%m-%d")
-            image_path = (
-                Path(self.config.output_dir) / f"{date_str}_{photo_id}.{url_ext}"
-            )
+            year = created_at.strftime("%Y")
+
+            # Create year subfolder if it doesn't exist
+            year_dir = Path(self.config.output_dir) / year
+            year_dir.mkdir(parents=True, exist_ok=True)
+
+            image_path = year_dir / f"{date_str}_{photo_id}.{url_ext}"
 
             # Check if photo already exists
             if image_path.exists():
@@ -276,9 +280,7 @@ class TransparentClassroomClient:
                     f"Photo {photo_id}: URL extension '{url_ext}' doesn't match "
                     f"actual format '{actual_ext}', using '{actual_ext}'"
                 )
-                image_path = (
-                    Path(self.config.output_dir) / f"{date_str}_{photo_id}.{actual_ext}"
-                )
+                image_path = year_dir / f"{date_str}_{photo_id}.{actual_ext}"
 
                 # Check again if photo with correct extension exists
                 if image_path.exists():

@@ -181,9 +181,17 @@ class TelegramBotHandler:
     def _check_photos_exist(self, date_str: str) -> bool:
         """Check if any photos exist for the given date"""
         try:
-            # Check if any files match the pattern
+            # Extract year from date_str (format: YYYY-MM-DD)
+            year = date_str.split("-")[0]
+            year_dir = self.output_dir / year
+
+            # If year directory doesn't exist, no photos for this date
+            if not year_dir.exists():
+                return False
+
+            # Check if any files match the pattern in the year subfolder
             for ext in ["jpg", "jpeg", "png", "gif", "tiff", "tif", "bmp", "webp"]:
-                if list(self.output_dir.glob(f"{date_str}_*.{ext}")):
+                if list(year_dir.glob(f"{date_str}_*.{ext}")):
                     return True
             return False
         except Exception as e:
@@ -194,8 +202,17 @@ class TelegramBotHandler:
         """Get all photos for a specific date"""
         photos = []
         try:
+            # Extract year from date_str (format: YYYY-MM-DD)
+            year = date_str.split("-")[0]
+            year_dir = self.output_dir / year
+
+            # If year directory doesn't exist, return empty list
+            if not year_dir.exists():
+                return []
+
+            # Get photos from the year subfolder
             for ext in ["jpg", "jpeg", "png", "gif", "tiff", "tif", "bmp", "webp"]:
-                photos.extend(self.output_dir.glob(f"{date_str}_*.{ext}"))
+                photos.extend(year_dir.glob(f"{date_str}_*.{ext}"))
             # Sort by filename
             photos.sort()
             return photos
