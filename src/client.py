@@ -98,7 +98,18 @@ class TransparentClassroomClient:
             if cache_age.total_seconds() <= self.config.cache_timeout:
                 self.logger.info(f"Loading cached data from {cache_file}")
                 with open(cache_file, "r") as file:
-                    return json.load(file)
+                    data = json.load(file)
+
+                # If the cached page is an empty list, treat it as missing cache
+                # so we can re-fetch from the API in case new posts were added.
+                if isinstance(data, list) and len(data) == 0:
+                    self.logger.info(
+                        f"Cached page {cache_file} is empty, removing and refetching"
+                    )
+                    cache_path.unlink(missing_ok=True)
+                    return None
+
+                return data
             else:
                 self.logger.info(f"Cache expired, removing {cache_file}")
                 cache_path.unlink()
